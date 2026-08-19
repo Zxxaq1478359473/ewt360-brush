@@ -120,8 +120,10 @@ def scan_tasks(account: str, password: str, hw: str = "") -> list:
         return []
     if code != 0:
         cprint("  ✗ 扫描失败，输出如下：")
-        cprint(out_clean[-2000:] or out[-2000:])
-        return []
+        cprint(out[-2000:])
+        cprint(f"\n  ✗ 主脚本启动失败（exit={code}）：{BRUSH_SCRIPT}")
+        cprint(f"  ✗ 请确认 {os.path.basename(BRUSH_SCRIPT)} 与 {os.path.basename(__file__)} 在同一目录，且文件有读取权限")
+        sys.exit(1)
     # 解析课时行（v2 格式：科目 标题 [时长] homeworkId=xxx lessonId=xxx）
     lessons = []
     for line in out_clean.splitlines():
