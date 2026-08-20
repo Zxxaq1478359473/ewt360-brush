@@ -10,6 +10,8 @@ EWT360 自包含全量刷课脚本（单文件一体化）— [测试版 ewt_bru
      通过 updateMission 一次直写 100%（参考 ECXiaobai/ewt360_tool）
   3. 完成判定后补发 clog.ewt360.com 播放日志（无鉴权端点，4段事件），
      提高后台完成判定率（参考 zjy2fz/ewt-auto-study）
+  4. 过课检测参数对齐（参考 luoying2334/EWT360-NEW-Helper 逆向）：
+     校本视频(ct=11) lessonId +2000000 偏移；type 按 contentType 计算（视频=1/其他=2）
   其余逻辑与原版 ewt_brush_v2.py 完全一致。
 整合：自动登录 + 作业扫描 + N路并行刷课 + 竞态爆发 + WAF冷却重试 + token自动续期。
 不依赖 spark.py / ewt_parallel.py，单文件即可运行。
@@ -650,25 +652,31 @@ class EwtClient:
         return None
 
     async def report_video_point(self, school_id: int, homework_id: int,
-                                 lesson_id: int) -> bool:
-        """自动通过看课检测（addVideoss 两步时序：scr=0 激活 → scr=2 通过）。"""
+                                 lesson_id: int, content_type: int = 1) -> bool:
+        """自动通过看课检测（addVideoss 两步时序：scr=0 激活 → scr=2 通过）。
+        [测试版] 对齐 luoying2334/EWT360-NEW-Helper 逆向参数（2026.7.30 平台检测）：
+          - 校本视频(contentType=11) 的 lessonId 需 +2000000 偏移
+          - type: 普通视频=1，其他（校本/FM/板报）=2；互动视频=3"""
+        submit_lesson_id = (str(int(lesson_id) + 2000000) if content_type == 11
+                            else str(lesson_id))
+        submit_type = 1 if content_type == 1 else 2
         await self._post(
             "/api/homeworkprod/homework/student/addVideoss",
             {"schoolId": school_id, "homeworkId": homework_id,
-             "lessonId": str(lesson_id), "type": 1,
+             "lessonId": submit_lesson_id, "type": submit_type,
              "interactivePointId": None, "platform": 1, "seriousCheckResult": 0},
         )
         await asyncio.sleep(3 + random.random() * 2)
         data = await self._post(
             "/api/homeworkprod/homework/student/addVideoss",
             {"schoolId": school_id, "homeworkId": homework_id,
-             "lessonId": str(lesson_id), "type": 1,
+             "lessonId": submit_lesson_id, "type": submit_type,
              "interactivePointId": None, "platform": 1, "seriousCheckResult": 2},
         )
         return data.get("success", False)
 
     async def pass_serious_check(self, school_id: int, homework_id: int,
-                                 lesson_id: int) -> bool:
+                                 lesson_id: int, content_type: int = 1) -> bool:
         """刷课后主动把 seriousCheckResult 置为 2（看课检测通过）。"""
         item = await self._query_serious_check_item(school_id, homework_id, lesson_id)
         if item is None:
@@ -684,7 +692,8 @@ class EwtClient:
             return False  # 错过检测点，需重刷（force_rounds），这里不做
         for attempt in range(1, 4):
             try:
-                ok = await self.report_video_point(school_id, homework_id, lesson_id)
+                ok = await self.report_video_point(school_id, homework_id, lesson_id,
+                                                   content_type=content_type)
                 if not ok:
                     return False
                 await asyncio.sleep(2)
@@ -1214,7 +1223,8 @@ async def run_brush_task(
                     b_passed = False
                     for b_attempt in range(1, 4):
                         try:
-                            await ewt_client.report_video_point(school_id, homework_id, lesson_id)
+                            await ewt_client.report_video_point(school_id, homework_id, lesson_id,
+                                                                content_type=content_type)
                             await asyncio.sleep(2)
                             burst_ok2, burst_total2, _ = await _fire_play(
                                 conf, token, lesson_id, report_cid, school_id,
@@ -1565,7 +1575,8 @@ async def _brush_one(client: EwtClient, school_id: int, hw_id, task: dict,
                 continue
             # 完成判定通过 → 额外把 scr 拉成 2 清理后台标记（best-effort）
             try:
-                scr_ok = await client.pass_serious_check(school_id, hw_id, lesson_id)
+                scr_ok = await client.pass_serious_check(school_id, hw_id, lesson_id,
+                                                          content_type=content_type)
             except Exception:
                 scr_ok = False
             if scr_ok:
@@ -1581,7 +1592,8 @@ async def _brush_one(client: EwtClient, school_id: int, hw_id, task: dict,
                             n_threads=burst_size, phase_offset_ms=phase_offset_ms,
                         ):
                             pass
-                        scr_ok2 = await rclient.pass_serious_check(school_id, hw_id, lesson_id)
+                        scr_ok2 = await rclient.pass_serious_check(school_id, hw_id, lesson_id,
+                                                                   content_type=content_type)
                     finally:
                         await rclient.close()
                     print("  [通过] 看课检测状态已修复" if scr_ok2

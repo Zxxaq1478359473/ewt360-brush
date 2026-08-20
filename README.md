@@ -42,6 +42,7 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 | 🎧 FM收听(ct=3) | `updateMission` 一次直写 100%，不走播放心跳 | ECXiaobai/ewt360_tool |
 | 📋 板报(ct=5) | 同上，一次直写 100% | ECXiaobai/ewt360_tool |
 | 📡 clog 日志补发 | 完成判定后向 `clog.ewt360.com`（无鉴权）补发 4 段播放日志，提高后台完成判定率 | zjy2fz/ewt-auto-study |
+| ✅ 过课检测参数对齐 | 校本视频(ct=11) lessonId **+2000000** 偏移；`type` 按 contentType 计算（视频=1/其他=2）——修复看课检测置2失败 | luoying2334/EWT360-NEW-Helper |
 
 > ⚠️ 试卷（contentType=2）不在测试版范围内（未实现）。
 > 其余逻辑与原版完全一致；若测试版出现异常，请回退正式版 `ewt_brush_v2.py`。
