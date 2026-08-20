@@ -32,6 +32,22 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 
 ---
 
+## 🧪 测试版（ewt_brush_v2_test.py）
+
+> 基于 5 个开源仓库（zjy2fz/ewt-auto-study、ECXiaobai/ewt360_tool、Klece/killewt、cny123/ewt360-course-tool、hmruu/ewt360）交叉研究后的实验版本，与正式版 `ewt_brush_v2.py` 并存，**不覆盖原版**。
+
+| 新增能力 | 说明 | 参考 |
+|---|---|---|
+| 🔐 登录签名头 | 补齐 Web 端 `sign=MD5(ts+key)` / `secretid=2` / `timestamp` / `autoLogin`，模拟真实浏览器登录，降低"请完成安全验证"风控概率 | ECXiaobai / cny123 |
+| 🎧 FM收听(ct=3) | `updateMission` 一次直写 100%，不走播放心跳 | ECXiaobai/ewt360_tool |
+| 📋 板报(ct=5) | 同上，一次直写 100% | ECXiaobai/ewt360_tool |
+| 📡 clog 日志补发 | 完成判定后向 `clog.ewt360.com`（无鉴权）补发 4 段播放日志，提高后台完成判定率 | zjy2fz/ewt-auto-study |
+
+> ⚠️ 试卷（contentType=2）不在测试版范围内（未实现）。
+> 其余逻辑与原版完全一致；若测试版出现异常，请回退正式版 `ewt_brush_v2.py`。
+
+---
+
 ## ✨ 功能特性
 
 | 功能 | 说明 |
@@ -54,6 +70,7 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 ```
 ewt360-brush/
 ├── ewt_brush_v2.py          # 刷课引擎（核心，自包含，单文件）—— 增强版
+├── ewt_brush_v2_test.py     # 🧪 测试版（登录签名头 + FM/板报直写 + clog补发，不覆盖原版）
 ├── ewt_brush_easy.py        # 傻瓜式交互入口（提问式引导）
 ├── requirements.txt         # 依赖（仅 2 个）
 ├── LICENSE                  # MIT License
