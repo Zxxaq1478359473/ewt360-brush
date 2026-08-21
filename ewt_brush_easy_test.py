@@ -15,6 +15,7 @@ EWT360 傻瓜式刷课引导器 - 【测试版】（ewt_brush_easy_test.py）
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -189,9 +190,58 @@ def count_in_log(logf: str, pattern: str) -> int:
         return 0
 
 
-def monitor(procs: list, total: int):
-    """实时监控所有实例直到全部退出。"""
-    cprint("\n  ===== 开始监控（每 20 秒刷新一次，Ctrl+C 可随时查看进度）=====")
+def find_lesson_label(lessons, lesson_id):
+    """在扫描结果中找课时标题做显示标签。"""
+    for line in lessons:
+        if f"lesson={lesson_id}" in line or f"(hw=" in line and str(lesson_id) in line:
+            # 提取标题（去掉编号前缀）
+            txt = line.strip()
+            for prefix in ("历史-", "语文-", "数学-", "英语-", "物理-", "化学-", "生物-",
+                           "政治-", "地理-", "心理-", "生涯-", "综合-", "音乐-", "美术-"):
+                if txt.startswith(prefix):
+                    return txt[len(prefix):40]
+            return txt[:40]
+    return f"课时{lesson_id}"
+
+
+def render_progress_bar(pct: float, width: int = 20) -> str:
+    """渲染一个文本进度条：'███████░░░ 35%'"""
+    pct = max(0.0, min(100.0, pct))
+    filled = int(round(pct / 100 * width))
+    bar = "█" * filled + "░" * (width - filled)
+    return f"{bar} {pct:5.1f}%"
+
+
+def parse_progress_from_log(logf: str) -> dict:
+    """解析实例日志，提取每个课时的当前进度（lesson_id -> 已播/还需）。
+    返回 {lesson_id: {'played': float, 'needed': float, 'done': bool, 'done_ratio': float}}"""
+    out = {}
+    try:
+        with open(logf, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.search(r"\[进度\]\[(\d+)\].*?已播 ([\d.]+)s.*?还需 ([\d.]+)s", line)
+                if m:
+                    lid = m.group(1)
+                    played = float(m.group(2))
+                    needed = float(m.group(3))
+                    ratio = round(played / (played + needed + 1e-9) * 100, 1)
+                    out[lid] = {"played": played, "needed": needed,
+                                "done": False, "done_ratio": ratio}
+                c = re.search(r"\[完成\]\[(\d+)\]", line)
+                if c:
+                    out[c.group(1)] = {"played": 1e9, "needed": 0,
+                                        "done": True, "done_ratio": 100.0}
+    except Exception:
+        pass
+    return out
+
+
+def monitor(procs: list, total: int, lessons=None):
+    """实时监控所有实例，每个课时以进度条形式显示，并显示总进度。
+    Ctrl+C 可随时暂停查看/退出监控（后台实例继续刷）。"""
+    import re as _re
+    lessons = lessons or []
+    cprint("\n  ===== 开始监控（每 15 秒刷新，课时级进度条，Ctrl+C 可暂停查看）=====")
     start = time.time()
     last_done = 0
     stall = 0
@@ -209,23 +259,53 @@ def monitor(procs: list, total: int):
             else:
                 stall = 0
                 last_done = done
-            st = f"\r  ⏱ {el // 60:02d}m{el % 60:02d}s  已完成 {done}/{total}  "
-            st += f"错误 {err}  WAF {waf}  运行中 {sum(alive)} 实例"
-            if stall >= 3:
-                st += "  ⚠ 进度停滞？"
-            print(st + " " * 10, end="", flush=True)
-            time.sleep(20)
+            # ---- 汇总总进度 ----
+            pct_total = (done / total * 100) if total > 0 else 100.0
+            print(f"\n\x1b[2J\x1b[H", end="", flush=True)  # 清屏重绘
+            cprint(f"  ═══════ 实时刷课面板 ═══════")
+            cprint(f"  ⏱ {el // 60:02d}m{el % 60:02d}s  运行 {sum(alive)} 实例  "
+                   f"错误 {err}  WAF {waf}  进度停滞: {'⚠ 是' if stall >= 3 else '否'}")
+            cprint(f"  📊 总进度: {render_progress_bar(pct_total)}  ({done}/{total} 课时完成)")
+            # ---- 每个实例的课时进度条 ----
+            for i, (p, lf) in enumerate(procs):
+                pg = parse_progress_from_log(lf)
+                if not pg:
+                    continue
+                cprint(f"  ── 实例 {i + 1} ──")
+                for lid, info in pg.items():
+                    label = find_lesson_label(lessons, lid)
+                    if info.get("done"):
+                        bar = "█" * 20
+                        line = f"    ✅ [{label[:24]:<24}] {bar}  完成"
+                    else:
+                        pct = info.get("done_ratio", 0.0)
+                        bar = render_progress_bar(pct)
+                        line = (f"    ▶ [{label[:24]:<24}] {bar}  "
+                                f"已播{info.get('played',0):.0f}s/还需{info.get('needed',0):.0f}s")
+                    cprint(line)
+            # 无课时进度时给个提示
+            if not any(parse_progress_from_log(lf) for _, lf in procs):
+                cprint("    （实例启动中/扫描中…尚未产生课时进度）")
+            time.sleep(15)
     except KeyboardInterrupt:
-        print("\n  ⏸ 监控暂停（后台实例继续运行）。按回车退出监控：")
-        input()
-        return
+        print("\n  ⏸ 监控暂停（后台实例继续运行）。回车继续监控 / Esc 退出：")
+        try:
+            k = input()
+            if k.strip().lower() in ("q", "quit", "exit") or k == "\x1b":
+                cprint(" 已退出监控（后台实例继续刷，日志仍在写）")
+                return
+        except Exception:
+            return
+        # 继续监控
+        return monitor(procs, total, lessons)
     print()
     el = int(time.time() - start)
     done = sum(count_in_log(lf, "[完成]") for _, lf in procs)
     err = sum(count_in_log(lf, "[错误]") for _, lf in procs)
     waf = sum(count_in_log(lf, "WAF") for _, lf in procs)
     cprint(f"\n  ✅ 全部实例已结束，总耗时 {el // 60}m{el % 60}s")
-    cprint(f"     完成 {done}/{total} | 错误 {err} | WAF {waf}")
+    cprint(f"     总进度 {done}/{total} 🎉" if done >= total else f"     已完成 {done}/{total}")
+    cprint(f"     错误 {err} | WAF {waf}")
     for i, (p, lf) in enumerate(procs):
         cprint(f"     实例{i + 1} 日志: {lf}（退出码 {p.returncode}）")
 
@@ -265,10 +345,9 @@ def main():
         return
     total = len(lessons)
     cprint(f"\n  🔍 找到 {total} 个未完成课时：")
-    for i, line in enumerate(lessons[:30], 1):
-        cprint(f"    [{i:>2}] {line}")
-    if total > 30:
-        cprint(f"    ... 共 {total} 个（其余省略）")
+    for i, line in enumerate(lessons, 1):
+        cprint(f"    [{i:>3}/{total}] {line}")
+    cprint(f"  ── 共 {total} 个课时（全部列出，无省略）──")
 
     hw = ask("\n  要只刷某个作业吗？输入作业ID，或直接回车刷全部", "",
              "作业ID形如 10516876；不填=刷所有作业下的未完成课时")
@@ -311,7 +390,7 @@ def main():
         cprint(f"\n【第 4 步】启动刷课（第 {brush_round} 轮）...")
         procs = start_instances(account, password, hw, total,
                                 n_inst, concurrency, burst, qps)
-        monitor(procs, total)
+        monitor(procs, total, lessons)
 
         # ---------- ⑤ 完成验证 ----------
         cprint("\n【第 5 步】完成验证（重新扫描确认是否刷完）...")
