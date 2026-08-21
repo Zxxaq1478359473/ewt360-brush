@@ -4,7 +4,6 @@
 EWT360 自包含全量刷课脚本（单文件一体化）
 ==========================================
 整合：自动登录 + 作业扫描 + N路并行刷课 + 竞态爆发 + WAF冷却重试 + token自动续期。
-原作者：Ruyi0623（https://github.com/Ruyi0623/spark_ewt），本脚本在其 spark 基础上重写增强。
 不依赖 spark.py / ewt_parallel.py，单文件即可运行。
 
 【极限速度测试结论】
@@ -19,10 +18,10 @@ EWT360 自包含全量刷课脚本（单文件一体化）
   python3 ewt_brush_v2.py --offset 30 --limit 31   # 分片（多实例并行提速）
 
 【多实例并行（分片提速）】
-  1. 实例A: python3 ewt_brush_v2.py --concurrency 12 --qps 400 --offset 0 --limit 31
-  2. 实例B: python3 ewt_brush_v2.py --concurrency 12 --qps 400 --offset 31 --limit 31
-  3. 实例C(补刷): python3 ewt_brush_v2.py --concurrency 12 --qps 400
-     每个实例可独立设置 --concurrency / --qps，互不干扰（Bucket 按 token+lesson 分片）。
+  1. 实例A: python3 ewt_brush_v2.py --concurrency 12 --qps 100000 --burst 24 --offset 0 --limit 56
+  2. 实例B: python3 ewt_brush_v2.py --concurrency 12 --qps 100000 --burst 24 --offset 56 --limit 56 --phase-offset 5000
+  3. 实例C(补刷): python3 ewt_brush_v2.py --concurrency 12 --qps 100000 --burst 24 --offset 112
+     每个实例可独立设置 --concurrency / --qps / --burst，互不干扰（Bucket 按 token+lesson 分片）。
 
 【token 自动续期】
   刷课中若被挤下线（错误码 2001106）或 token 失效，自动重新登录换新 token
@@ -68,7 +67,7 @@ WAF_RETRY_COUNT = 2           # 冷却重试上限（超过则失败）
 # ⚠ 安全：无内置默认账号！账号密码必须由用户显式提供
 # （--account/--password 参数，或终端下交互输入）
 # token 文件路径：可用环境变量 EWT_TOKEN_FILE 覆盖（手机端 Termux 等无 /root 目录时必用）
-TOKEN_FILE = os.environ.get("EWT_TOKEN_FILE", os.path.join(os.path.expanduser("~"), ".ewt_token.txt"))
+TOKEN_FILE = os.environ.get("EWT_TOKEN_FILE", "/root/ewt_token.txt")
 
 logger = logging.getLogger("ewt_brush")
 
@@ -175,7 +174,7 @@ def set_gateway_qps_cap(per_minute: float) -> None:
 # ======================================================================
 # [热更新] 运行中动态调整 burst / qps（网页端 /api/config 写配置文件）
 # ======================================================================
-LIVE_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".ewt_live_config.json")
+LIVE_CONFIG_FILE = "/tmp/ewt_live_config.json"
 
 
 def _load_live_config() -> dict | None:
@@ -1615,11 +1614,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "  python3 ewt_brush_v2.py                          # 自动登录刷全部\n"
             "  python3 ewt_brush_v2.py --hw 10500480            # 只刷指定作业\n"
             "  python3 ewt_brush_v2.py --token xxx --dry-run    # 仅扫描\n"
-            "  python3 ewt_brush_v2.py --concurrency 12 --qps 400\n"
-            "  # 多实例分片（各实例独立调路数/QPS）:\n"
-            "  #   实例A: --offset 0 --limit 31 --concurrency 12 --qps 400\n"
-            "  #   实例B: --offset 31 --limit 31 --concurrency 12 --qps 400\n"
-            "  #   实例C: --concurrency 12 --qps 400（补刷）"
+            "  python3 ewt_brush_v2.py --concurrency 12 --qps 100000 --burst 24\n"
+            "  # 多实例分片（推荐 4实例×12路+burst24+不限速，各实例独立调路数/QPS）:\n"
+            "  #   实例A: --offset 0 --limit 56 --phase-offset 0\n"
+            "  #   实例B: --offset 56 --limit 56 --phase-offset 5000\n"
+            "  #   实例C: --offset 112 --limit 56 --phase-offset 10000\n"
+            "  #   实例D: --offset 168（补刷）"
         ),
     )
     p.add_argument("--token", help="EWT token（缺省读 TOKEN_FILE，无效则自动登录）")
