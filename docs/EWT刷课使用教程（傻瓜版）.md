@@ -138,43 +138,145 @@ python3 ewt_brush_easy.py
 
 ### 3.2 📱 手机端（Termux 推荐 / Pydroid3 备选）
 
-#### 方案一：Termux（推荐，命令行体验与电脑一致）
+#### 方案一：Termux（推荐，命令行体验与电脑一致，本次从零完整讲解）
 
-**① 安装 Termux**
-- 官方渠道：**F-Droid** 搜索 Termux 安装（或 GitHub releases），不要用 Google Play 的旧版
-- 打开后先更新：`pkg update && pkg upgrade -y`（首次较慢，耐心等）
+---
+**📦 什么是 Termux？**
+Termux 是手机上的一款 Linux 终端模拟器，可以在手机上运行 Python 等程序。**首次配置需要几步，跟着下面做一次，之后每次直接运行即可。**
 
-**② 安装 Python 与依赖**
+---
+
+**① 安装 Termux（选对来源很重要）**
+
+> ⚠️ **不要用 Google Play 商店的 Termux**（早已停止更新，装不了 Python）。以下二选一：
+
+- **推荐：F-Droid 应用商店**
+  1. 手机浏览器打开 `https://f-droid.org/F-Droid.apk` 下载安装 F-Droid
+  2. 打开 F-Droid，搜索 **Termux** → 安装
+  > 首次打开 F-Droid 可能提示"允许安装未知来源"，到手机设置里允许即可
+
+- **备选：GitHub Releases 直接下 APK**
+  1. 浏览器打开 `https://github.com/termux/termux-app/releases`
+  2. 下载最新版 `termux-app_v0.118.0+github-debug_arm64-v8a.apk`（第3个是普通 ARM64 机型通用的）
+  3. 安装
+
+---
+
+**② 首次打开 Termux（初始化 + 更新软件源）**
+
+打开 Termux 后先做一次全面更新（首次更新较慢，请耐心，通常 1~5 分钟）：
+
 ```bash
-pkg install -y python
-pip install httpx pycryptodome
+pkg update && pkg upgrade -y
 ```
 
-**③ 授权存储并进入脚本目录**
-```bash
-termux-setup-storage          # 弹窗允许存储权限
-cd "/storage/emulated/0/具体路径"
-ls                            # 确认能看到 ewt_brush_easy.py 和 ewt_brush_v2.py
-```
-> 脚本放在手机任意目录都行，`cd` 到那个目录即可（手机路径 `/storage/emulated/0/...` 与 `/sdcard/...` 是同一个位置）。
+> 如果这步卡住或很慢（常见于国内网络），**先换国内源**，再重试上面的更新：
+> ```bash
+> # 一键切换到清华源（自动下载源配置）
+> sed -i 's@^\(deb.*stable main\)$@#\1\ndeb [trusted=yes] https://mirrors.tuna.tsinghua.edu.cn/termux/termux-packages-24 stable main@' $PREFIX/etc/apt/sources.list
+> pkg update -y
+> ```
+> 换源后再跑一次 `pkg upgrade -y`。
+> > 🔄 若日后需要换回官方源，把 `sources.list` 里的 `mirrors.tuna...` 改回 `termux.net` 即可。
 
-**④ 运行（傻瓜入口，token 自动处理，无需手动设置）**
+---
+
+**③ 安装 Python 和两根依赖**
+
 ```bash
-python3 ewt_brush_easy.py
+pkg install -y python            # 装 Python 3（Termux 里 python 命令生效）
+pip install httpx pycryptodome   # 装两个依赖：网络请求库 + AES加密库
 ```
 
-**⑤ 防止息屏断网（关键！）**
+验证是否装好（看到 `OK` 即成功）：
 ```bash
-termux-wake-lock              # 保持 CPU 唤醒，息屏也能继续刷
-# 刷完后解除：termux-wake-unlock
-# 另外：系统设置里允许 Termux 后台运行、关闭电池优化
+python -c "import httpx, Crypto; print('OK')"
 ```
+
+---
+
+**④ 授权存储访问（关键步骤）**
+
+Termux 默认访问不了手机存储，需要授权：
+```bash
+termux-setup-storage
+```
+> 手机会弹窗询问权限，选**允许**。成功后会在 Termux 主目录生成 `storage` 软链接：
+> - `/data/data/com.termux/files/home/storage/shared` → 手机共享存储
+> - **手机下载/共享目录的固定路径**：`/sdcard/Download` 或 `/storage/emulated/0/Download` 是同一个位置
+
+---
+
+**⑤ 把脚本放到手机 + 进入目录**
+
+把 `ewt_brush_easy_test.py` + `ewt_brush_v2_test.py`（测试版）或 `ewt_brush_easy.py` + `ewt_brush_v2.py`（正式版）**两个文件拷到手机**（如 `Download/ewt360` 文件夹）。
+
+然后在 Termux 里 `cd` 到脚本目录：
+```bash
+cd /storage/emulated/0/Download/ewt360    # 换成你放脚本的文件夹
+ls                                       # 确认能看到两个 .py 文件
+```
+> 💡 提示：通常手机连接电脑 USB 拷贝、或手机文件管理器移动，都比在 Termux 里敲命令方便。
+
+---
+
+**⑥ 运行刷课（傻瓜入口）**
+
+```bash
+python ewt_brush_easy_test.py       # 测试版（推荐，带进度条面板 + FM/板报直写）
+# 或正式版：
+python ewt_brush_easy.py
+```
+按提示答题：**账号 → 密码 → 自动扫描（会完整列出全部课时）→ 实例/concurrency/burst/qps（回车用推荐值）→ Y 确认**，之后全自动。
+
+---
+
+**⑦ 防止息屏断网（刷课必备！）**
+
+手机息屏后 Termux 可能被系统杀掉或断网，导致刷课中断。务必做这几步：
+
+```bash
+termux-wake-lock        # 保持 CPU 唤醒（息屏也能继续运行）
+```
+> 刷完后解除：`termux-wake-unlock`
+
+同时去**手机设置**里：
+1. 设置 → 应用 → Termux → 电池 → 选择**不限/不优化**（关闭电池优化）
+2. 设置 → 应用 → Termux → 允许**后台运行**
+3. 建议**保持亮屏并插电**刷课（最稳妥）
+
+---
+
+**⑧ 常驻运行（选做，刷大量课时更省心）**
+
+如果课时很多想挂着通宵刷，可用 `nohup` 让脚本在后台跑，即使退出了 Termux 窗口也不停：
+```bash
+cd /storage/emulated/0/Download/ewt360
+nohup python ewt_brush_easy_test.py > run.log 2>&1 &
+```
+之后随时查看进度：
+```bash
+tail -f run.log          # 实时看刷课日志
+# 按 Ctrl+C 停止查看日志（脚本继续后台跑）
+```
+> 停止整个后台刷课：`pkill -f ewt_brush`（慎用，会中断所有实例）
+
+---
+
+**⑨ 二次使用（之后每天只用这三步）**
+```bash
+termux-wake-lock                              # 1. 保持唤醒
+cd /storage/emulated/0/Download/ewt360        # 2. 进目录
+python ewt_brush_easy_test.py                  # 3. 开刷（已完成的自动跳过）
+```
+
+---
 
 #### 方案二：Pydroid3（图形界面，适合不熟悉命令行）
 
 1. 应用商店安装 **Pydroid 3**（免费版即可）
 2. 打开 → 菜单 → **Pip** → 输入 `httpx pycryptodome` → 安装
-3. 把 `ewt_brush_easy.py` 和 `ewt_brush_v2.py` 拷贝到手机，Pydroid 菜单 → 打开文件 → 选 `ewt_brush_easy.py`
+3. 把 `ewt_brush_easy.py` 和 `ewt_brush_v2.py` 拷贝到手机**公共存储**（如 `Download/`，**不要放 Pydroid 私有目录**），Pydroid 菜单 → 打开文件 → 选 `ewt_brush_easy.py`
 4. 点运行按钮即可（交互式提问照常显示）
 5. 注意：Pydroid 是前台应用，**息屏可能暂停**，建议刷课时保持亮屏并插电
 
