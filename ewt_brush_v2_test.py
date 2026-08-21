@@ -12,6 +12,8 @@ EWT360 自包含全量刷课脚本（单文件一体化）— [测试版 ewt_bru
      提高后台完成判定率（参考 zjy2fz/ewt-auto-study）
   4. 过课检测参数对齐（参考 luoying2334/EWT360-NEW-Helper 逆向）：
      校本视频(ct=11) lessonId +2000000 偏移；type 按 contentType 计算（视频=1/其他=2）
+  5. 完成判定阈值对齐 spark 更新版 [OPTIM]：percent>=0.8（平台真实阈值），
+     避免 1.0 过严误判重刷；seriousCheckResult 直查优先、翻页兜底
   其余逻辑与原版 ewt_brush_v2.py 完全一致。
 整合：自动登录 + 作业扫描 + N路并行刷课 + 竞态爆发 + WAF冷却重试 + token自动续期。
 不依赖 spark.py / ewt_parallel.py，单文件即可运行。
@@ -607,17 +609,22 @@ class EwtClient:
 
     async def check_detection_passed(self, school_id: int, homework_id: int,
                                      lesson_id: int) -> bool:
-        """检查刷课后 EWT 是否认定课时已完成（finished/ratio/percent）。"""
-        item = await self._query_serious_check_item(school_id, homework_id, lesson_id)
-        if item is not None:
-            if item.get("finished") is True or (item.get("ratio") or 0) >= 1.0:
-                return True
+        """检查刷课后 EWT 是否认定课时已完成（finished/ratio/percent）。
+        [测试版] 对齐 spark 更新版 [OPTIM]：平台达标阈值=80%（finishPercent=0.8），
+        用 percent>=0.8 判定，避免 1.0 过严导致已达标课时被误判重刷；
+        查询失败不误判（返回 True）。"""
         try:
             info = await self.get_lesson_info(school_id, homework_id, lesson_id)
-            if (info.get("percent") or 0) >= 1.0:
+            if (info.get("percent") or 0) >= 0.8:
+                return True
+            if info.get("finished") is True:
                 return True
         except Exception:
-            pass
+            return True  # 查询失败不误判
+        item = await self._query_serious_check_item(school_id, homework_id, lesson_id)
+        if item is not None:
+            if item.get("finished") is True or (item.get("ratio") or 0) >= 0.8:
+                return True
         return False
 
     async def _query_serious_check_item(self, school_id: int, homework_id: int,
@@ -677,7 +684,36 @@ class EwtClient:
 
     async def pass_serious_check(self, school_id: int, homework_id: int,
                                  lesson_id: int, content_type: int = 1) -> bool:
-        """刷课后主动把 seriousCheckResult 置为 2（看课检测通过）。"""
+        """刷课后主动把 seriousCheckResult 置为 2（看课检测通过）。
+        [测试版] 对齐 spark 更新版 [OPTIM]：优先用 get_lesson_info 直查
+        seriousCheckResult，避免翻页查询；查不到才 fallback 翻页。"""
+        # 直查优先：getUserHomeworkLessonTaskInfo 自带 seriousCheckResult 字段
+        try:
+            info = await self.get_lesson_info(school_id, homework_id, lesson_id)
+            scr = info.get("seriousCheckResult")
+            if scr is not None:
+                scr = int(scr)
+                if scr >= 2:
+                    return True
+                if scr == 1:
+                    return False  # 错过检测点，需重刷（force_rounds），这里不做
+                # scr == 0: 执行 report_video_point 激活→通过
+                for attempt in range(1, 4):
+                    ok = await self.report_video_point(school_id, homework_id, lesson_id,
+                                                       content_type=content_type)
+                    if not ok:
+                        return False
+                    await asyncio.sleep(2)
+                    info2 = await self.get_lesson_info(school_id, homework_id, lesson_id)
+                    scr2 = int((info2 or {}).get("seriousCheckResult") or 0)
+                    if scr2 >= 2:
+                        return True
+                    if attempt < 3:
+                        await asyncio.sleep(3)
+                return False
+        except Exception:
+            pass  # 直查失败 → fallback 翻页
+        # fallback：翻页查询（保留原逻辑）
         item = await self._query_serious_check_item(school_id, homework_id, lesson_id)
         if item is None:
             return False
