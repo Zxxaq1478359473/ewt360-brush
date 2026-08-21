@@ -58,7 +58,7 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 > - **正式版**（v2 + easy）：稳定，只刷视频课时。
 > - **测试版**（v2_test + easy_test）：基于开源仓库交叉研究增强，支持 FM/板报 `updateMission` 直写 100%、clog 播放日志补发、过课检测参数优化（校本视频 +2000000）、登录签名头降风控、**课时级进度条面板**、完整列任务。测试版不覆盖原版，可放心试用，出问题随时回退正式版。
 
-> **什么是 FM 课时？** EWT 作业里除了视频课时，还有一小类"心灵成长/生涯规划"音频（平台叫 FM，2~6 分钟一条）。**测试版引擎**已通过 `updateMission` 接口直接直写这些课时为完成；**正式版引擎**只处理视频（contentType 1/11），FM（contentType 3/5）需用 `ewt_fm_brush_tg.py` 单独刷（详见第 12 章）。
+> **什么是 FM 课时？** EWT 作业里除了视频课时，还有一小类"心灵成长/生涯规划"音频（平台叫 FM，2~6 分钟一条）。**测试版引擎**已通过 `updateMission` 接口直接直写这些课时为完成（见 12.3）；**正式版引擎**只处理视频（contentType 1/11），不处理 FM。
 
 ### 为什么 easy 只有 v2 的 1/5 大小？——因为它一行刷课代码都没有
 
@@ -425,12 +425,12 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 - **机制 C**：刷完检测未通过 → 自动重刷（最多 3 次）
 
 ### 4.9 FM 课时（心灵成长 / 生涯规划音频）
-作业里有一小类**短音频**（2~6 分钟），平台归类为 FM（内容类型 contentType 3/5，科目显示"心灵成长/生涯规划"）。它和视频的完成机制不同：
-- 播放器类型 contentType=**3**（token 接口用 3，任务列表标 5）
-- 业务编码 videoBizCode=**1003**（视频是 1013）
-- 上报体参数：video_type=3、media_time=播放时长-220、point_num=6
-- 流程：先调 `xinliprod/fm/record/submit` 登记 → 再 BFE 竞态上报（每轮 60 秒 ×10 路）→ 查 ratio/finished
-- v2 引擎**不处理** FM（只扫 contentType 1/11），FM 要用 `ewt_fm_brush_tg.py`
+作业里有一小类**短音频**（2~6 分钟），平台归类为 FM（内容类型 contentType 3/5，科目显示"心灵成长/生涯规划"）。
+
+**测试版引擎**扫描时自动识别 contentType=3/5 的 FM/板报课时，调用 EWT 的 `updateMission {schoolId, contentId, contentType, percent:1}` 接口**一次直写完成度 100%**（不走播放心跳、秒完成），刷课日志显示 `[直写] ... updateMission(ct=3) → ✅ 100%`。
+
+- **测试版**（`ewt_brush_v2_test.py` / `ewt_brush_easy_test.py`）：✅ 自动直写 FM/板报
+- **正式版**（`ewt_brush_v2.py` / `ewt_brush_easy.py`）：不处理 FM（只扫 contentType 1/11），FM 请用测试版引擎
 
 ---
 
@@ -556,8 +556,8 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 | `speed 超限（699001）` | speed > 2.0 | 保持 ≤2.0 |
 | `连接被拒绝` | 并发过高 | 降到 12路 或更低 |
 | `没有未完成的课时` | **全部刷完 ✅** | 无需操作，等新作业发布 |
-| 想重刷已完成的课时 | 扫描默认跳过已完成 | 用 `--force-all`（视频）或 `ewt_fm_brush_tg.py --force`（FM），详见第 12 章 |
-| 作业显示还有 FM 课时没完成（心灵成长/生涯规划） | v2 只刷视频，FM 是独立类型 | 跑 `python3 ewt_fm_brush_tg.py`（自动跳过已完成的；加 `--force` 强制全刷） |
+| 想重刷已完成的课时 | 扫描默认跳过已完成 | 用 `--force-all`，详见第 12 章 |
+| 作业显示还有 FM 课时没完成（心灵成长/生涯规划） | 正式版只刷视频 | 用**测试版引擎**（`ewt_brush_v2_test.py` 或 `ewt_brush_easy_test.py`）自动直写 FM/板报 |
 | 刷完显示"未通过" | 看课检测问题 | **无需操作**：机制C 自动重刷最多3次；仍不行本工具自动补刷 |
 | 单个课时失败（连接/WAF超限） | 偶发网络/风控 | **无需操作**：本工具自动补刷（最多3轮），已完成的自动跳过 |
 
@@ -601,17 +601,23 @@ python3 ewt_brush_v2.py --account X --password Y --force-all \
     --concurrency 12 --burst 24 --qps 100000 --offset 28 --limit 28 --phase-offset 5000
 ```
 
-### 12.3 FM 课时：`ewt_fm_brush_tg.py --force`
+### 12.3 FM 课时（心灵成长/生涯规划音频）
+
+**测试版引擎 `ewt_brush_v2_test.py` 已内置 FM/板报直写** —— 通过 `updateMission` 接口一次直写 100%，无需额外 FM 脚本：
 
 ```bash
-# 只刷未完成的 FM（自动跳过已完成的）
-python3 ewt_fm_brush_tg.py
+# 只刷未完成的 FM（自动跳过已完成）
+python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码
 
-# 强制重刷全部 FM（含已完成，先 record/submit 登记再上报）
-python3 ewt_fm_brush_tg.py --force
+# 强制重刷全部 FM（含已完成）
+python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码 --force-all
 ```
 
-> ⚠️ `ewt_fm_brush_tg.py` 里 `SCHOOL_ID / HW_ID / TOKEN_FILE` 是写死的（当前账号示例），换账号请改文件顶部 3 个常量。
+**工作原理**：测试版引擎扫描时会自动识别 FM(contentType=3)/板报(contentType=5) 课时，调用 EWT 的 `updateMission {schoolId, contentId, contentType, percent:1}` 接口**一次直写完成度 100%**，不走播放心跳、秒完成。
+
+> 📌 FM 直写在刷课时自动处理（每个 FM 课时日志显示 `[直写] ... updateMission(ct=3) → ✅ 100%`）。
+
+> ⚠️ 旧教程提到的 `ewt_fm_brush_tg.py` 是遗留文件，**当前版本已不再需要**（FM 直写已并入测试版引擎）。
 
 ### 12.4 注意事项
 1. **强制重刷会产生新的播放记录**——无特殊需求不建议全刷，已完成课时服务器已记录
@@ -641,10 +647,13 @@ python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
 python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 75 --limit 0 --phase-offset 15000
 
-# FM 课时（心灵成长/生涯规划音频，v2 不处理，用专用脚本）
-python3 ewt_fm_brush_tg.py            # 只刷未完成的 FM
-python3 ewt_fm_brush_tg.py --force    # 强制重刷全部 FM
+# FM 课时（心灵成长/生涯规划音频）——用测试版引擎自动直写（含 FM/板报）
+python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码 \
+    --concurrency 12 --burst 24 --qps 100000
+# 或傻瓜入口：
+python3 ewt_brush_easy_test.py
 
 # 查看全部参数
 python3 ewt_brush_v2.py --help
+# 测试版参数同样：python3 ewt_brush_v2_test.py --help
 ```
