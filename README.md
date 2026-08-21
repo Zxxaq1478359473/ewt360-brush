@@ -301,10 +301,9 @@ python3 ewt_brush_easy.py
 
 ## 💰 赞赏
 
-### 如果这个项目帮到了你，省下了大量刷课时间，欢迎扫码请我喝杯咖啡！☕
+如果这个项目帮到了你，省下了大量刷课时间，欢迎扫码请我喝杯咖啡！☕
 
-> 你的每一份支持，都是我持续维护和更新的最大动力！
-> 每一次点赞、每一个 Star、每一杯咖啡，都让我更有热情去完善它 🙏
+你的每一份支持，都是我持续维护和更新的最大动力！每一次点赞、每一个 Star、每一杯咖啡，都让我更有热情去完善它 🙏
 
 **🎁 赞赏后你可以：**
 - 在 Issues 里留下你的微信昵称，我会拉你进**互助交流群**
@@ -313,21 +312,14 @@ python3 ewt_brush_easy.py
 
 **🏆 累计赞赏排行（如有）：** TBD
 
-<p align="center">
-  <img src="./97640.png" width="350" alt="微信赞赏码">
-</p>
+👉 扫一扫，立刻赞赏！扫码备注 `ewt360` 即可，感谢每一份支持 ❤️
 
-<p align="center">
-  <b>👉 扫一扫，立刻赞赏 👈</b><br>
-  <sub>扫码备注 <code>ewt360</code> 即可，感谢每一份支持 ❤️</sub>
-</p>
+<img src="./97640.png" width="450" alt="微信赞赏码">
 
-<p align="center">
-  <a href="https://github.com/Zxxaq1478359473/ewt360-brush/stargazers">
-    <img src="https://img.shields.io/github/stars/Zxxaq1478359473/ewt360-brush?style=social&label=Star%20%E6%94%AF%E6%8C%81" alt="Star 支持">
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/Zxxaq1478359473/ewt360-brush/issues">
-    <img src="https://img.shields.io/github/issues/Zxxaq1478359473/ewt360-brush?style=social&label=Issue%20%E5%8F%8D%E9%A6%88" alt="Issue 反馈">
-  </a>
-</p>
+<a href="https://github.com/Zxxaq1478359473/ewt360-brush/stargazers">
+  <img src="https://img.shields.io/github/stars/Zxxaq1478359473/ewt360-brush?style=social&label=Star%20%E6%94%AF%E6%8C%81" alt="Star 支持">
+</a>
+&nbsp;&nbsp;
+<a href="https://github.com/Zxxaq1478359473/ewt360-brush/issues">
+  <img src="https://img.shields.io/github/issues/Zxxaq1478359473/ewt360-brush?style=social&label=Issue%20%E5%8F%8D%E9%A6%88" alt="Issue 反馈">
+</a>
