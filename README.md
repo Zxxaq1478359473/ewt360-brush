@@ -44,6 +44,7 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 | 📡 clog 日志补发 | 完成判定后向 `clog.ewt360.com`（无鉴权）补发 4 段播放日志，提高后台完成判定率 | zjy2fz/ewt-auto-study |
 | ✅ 过课检测参数对齐 | 校本视频(ct=11) lessonId **+2000000** 偏移；`type` 按 contentType 计算（视频=1/其他=2）——修复看课检测置2失败 | luoying2334/EWT360-NEW-Helper |
 | ✅ 判定阈值 0.8 | 完成判定 `percent>=0.8`（平台真实阈值，原 1.0 过严会误判重刷）；seriousCheckResult 直查优先、翻页兜底 | spark 更新版 cx.py |
+| 🧪 傻瓜式入口 | `ewt_brush_easy_test.py`——测试版专属问答式引导（账号→扫描→配置→多实例→监控→验证全自动） | 同 easy |
 
 > ⚠️ 试卷（contentType=2）不在测试版范围内（未实现）。
 > 其余逻辑与原版完全一致；若测试版出现异常，请回退正式版 `ewt_brush_v2.py`。
@@ -73,6 +74,7 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 ewt360-brush/
 ├── ewt_brush_v2.py          # 刷课引擎（核心，自包含，单文件）—— 增强版
 ├── ewt_brush_v2_test.py     # 🧪 测试版（登录签名头 + FM/板报直写 + clog补发，不覆盖原版）
+├── ewt_brush_easy_test.py   # 🧪 测试版傻瓜式入口（账号→扫描→配置→多实例→监控，全自动）
 ├── ewt_brush_easy.py        # 傻瓜式交互入口（提问式引导）
 ├── requirements.txt         # 依赖（仅 2 个）
 ├── LICENSE                  # MIT License
