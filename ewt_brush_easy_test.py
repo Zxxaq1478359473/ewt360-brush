@@ -236,12 +236,15 @@ def parse_progress_from_log(logf: str) -> dict:
     return out
 
 
-def monitor(procs: list, total: int, lessons=None):
+def monitor(procs: list, total: int, lessons=None, refresh_interval: float = 3.0):
     """实时监控所有实例，每个课时以进度条形式显示，并显示总进度。
-    Ctrl+C 可随时暂停查看/退出监控（后台实例继续刷）。"""
+    refresh_interval: 刷新间隔秒数（默认 3 秒，更实时）。
+    监控中输入：数字(1-30)调刷新间隔；q 退出监控（后台继续刷）；直接回车刷新一次。"""
     import re as _re
     lessons = lessons or []
-    cprint("\n  ===== 开始监控（每 15 秒刷新，课时级进度条，Ctrl+C 可暂停查看）=====")
+    import select as _select
+    cprint(f"\n  ===== 实时监控面板（默认每 {refresh_interval} 秒刷新）=====")
+    cprint(f"  📌 监控时输入：数字1-30=调刷新间隔(秒) | 回车=立即刷新 | q=退出监控（后台继续刷）")
     start = time.time()
     last_done = 0
     stall = 0
@@ -264,7 +267,8 @@ def monitor(procs: list, total: int, lessons=None):
             print(f"\n\x1b[2J\x1b[H", end="", flush=True)  # 清屏重绘
             cprint(f"  ═══════ 实时刷课面板 ═══════")
             cprint(f"  ⏱ {el // 60:02d}m{el % 60:02d}s  运行 {sum(alive)} 实例  "
-                   f"错误 {err}  WAF {waf}  进度停滞: {'⚠ 是' if stall >= 3 else '否'}")
+                   f"错误 {err}  WAF {waf}  进度停滞: {'⚠ 是' if stall >= 3 else '否'}  "
+                   f"刷新:{refresh_interval:g}s")
             cprint(f"  📊 总进度: {render_progress_bar(pct_total)}  ({done}/{total} 课时完成)")
             # ---- 每个实例的课时进度条 ----
             for i, (p, lf) in enumerate(procs):
@@ -286,7 +290,30 @@ def monitor(procs: list, total: int, lessons=None):
             # 无课时进度时给个提示
             if not any(parse_progress_from_log(lf) for _, lf in procs):
                 cprint("    （实例启动中/扫描中…尚未产生课时进度）")
-            time.sleep(15)
+            # ---- 等待下一个刷新周期（可被按键打断立即刷新）----
+            wait = refresh_interval
+            while wait > 0 and any(p.poll() is None for p, _ in procs):
+                try:
+                    r, _, _ = _select.select([sys.stdin], [], [], 0.5)
+                    if r:
+                        key = sys.stdin.readline().strip().lower()
+                        if key == "q":
+                            cprint(" 已退出监控（后台实例继续刷，日志仍在写）")
+                            return
+                        elif key.isdigit() and 1 <= int(key) <= 30:
+                            refresh_interval = float(int(key))
+                            cprint(f"  ✅ 刷新间隔已设为 {refresh_interval:g} 秒")
+                            wait = 0  # 立即刷新
+                            break
+                        else:
+                            wait = 0  # 回车立即刷新
+                            break
+                except Exception:
+                    pass
+                time.sleep(min(0.5, wait))
+                wait -= 0.5
+            if wait <= 0:
+                continue
     except KeyboardInterrupt:
         print("\n  ⏸ 监控暂停（后台实例继续运行）。回车继续监控 / Esc 退出：")
         try:
@@ -297,7 +324,7 @@ def monitor(procs: list, total: int, lessons=None):
         except Exception:
             return
         # 继续监控
-        return monitor(procs, total, lessons)
+        return monitor(procs, total, lessons, refresh_interval=refresh_interval)
     print()
     el = int(time.time() - start)
     done = sum(count_in_log(lf, "[完成]") for _, lf in procs)
