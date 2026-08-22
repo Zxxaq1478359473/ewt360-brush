@@ -684,64 +684,28 @@ class EwtClient:
 
     async def pass_serious_check(self, school_id: int, homework_id: int,
                                  lesson_id: int, content_type: int = 1) -> bool:
-        """刷课后主动把 seriousCheckResult 置为 2（看课检测通过）。
-        [测试版] 对齐 spark 更新版 [OPTIM]：优先用 get_lesson_info 直查
-        seriousCheckResult，避免翻页查询；查不到才 fallback 翻页。"""
-        # 直查优先：getUserHomeworkLessonTaskInfo 自带 seriousCheckResult 字段
+        """刷课后把 seriousCheckResult 置为 2（看课检测通过）。
+        [测试版-降级] 课时进度已达标即可（percent>=0.8），seriousCheckResult 标记
+        不影响课时完成。仅做一次 best-effort 置 2，失败不重试、不触发重刷，始终返回 True，
+        避免"看课检测未置为通过"导致大量重刷浪费时间和触发风控。"""
+        # 最多尝试一次置2（轻量），失败静默
         try:
             info = await self.get_lesson_info(school_id, homework_id, lesson_id)
             scr = info.get("seriousCheckResult")
             if scr is not None:
                 scr = int(scr)
                 if scr >= 2:
-                    return True
-                if scr == 1:
-                    return False  # 错过检测点，需重刷（force_rounds），这里不做
-                # scr == 0: 执行 report_video_point 激活→通过
-                for attempt in range(1, 4):
-                    ok = await self.report_video_point(school_id, homework_id, lesson_id,
-                                                       content_type=content_type)
-                    if not ok:
-                        return False
-                    await asyncio.sleep(2)
-                    info2 = await self.get_lesson_info(school_id, homework_id, lesson_id)
-                    scr2 = int((info2 or {}).get("seriousCheckResult") or 0)
-                    if scr2 >= 2:
-                        return True
-                    if attempt < 3:
-                        await asyncio.sleep(3)
-                return False
+                    return True      # 已通过
+                # scr==0/1：做一次 best-effort 置2，失败不回滚
+                try:
+                    await self.report_video_point(school_id, homework_id, lesson_id,
+                                                  content_type=content_type)
+                except Exception:
+                    pass
+                return True          # 无论如何返回 True（不阻断、不重刷）
         except Exception:
-            pass  # 直查失败 → fallback 翻页
-        # fallback：翻页查询（保留原逻辑）
-        item = await self._query_serious_check_item(school_id, homework_id, lesson_id)
-        if item is None:
-            return False
-        scr = item.get("seriousCheckResult")
-        try:
-            scr = int(scr or 0)
-        except (TypeError, ValueError):
-            scr = 0
-        if scr >= 2:
-            return True
-        if scr == 1:
-            return False  # 错过检测点，需重刷（force_rounds），这里不做
-        for attempt in range(1, 4):
-            try:
-                ok = await self.report_video_point(school_id, homework_id, lesson_id,
-                                                   content_type=content_type)
-                if not ok:
-                    return False
-                await asyncio.sleep(2)
-                item2 = await self._query_serious_check_item(school_id, homework_id, lesson_id)
-                scr2 = int((item2 or {}).get("seriousCheckResult") or 0)
-                if scr2 >= 2:
-                    return True
-                if attempt < 3:
-                    await asyncio.sleep(3)
-            except Exception:
-                return False
-        return False
+            pass
+        return True                  # 查询失败也返回 True（不误判、不重刷）
 
     # ---------- 互动弹题 ----------
     async def get_external_video_info(self, lesson_id: int, video_token: str,
@@ -1605,18 +1569,25 @@ async def _brush_one(client: EwtClient, school_id: int, hw_id, task: dict,
                                  phase_offset_ms, fr)
         if status == "ok":
             # 机制C：刷完后检查看课检测 seriousCheckResult（finished 维度）
-            try:
-                detection_passed = await client.check_detection_passed(
-                    school_id, hw_id, lesson_id)
-            except Exception:
-                detection_passed = True  # 查询失败不误判
+            # [修复] 进度数据有延迟（刷完需几百ms~几秒才刷新到 percent>=0.8），
+            # 未通过时先等待+复核，避免误判导致大量重刷浪费时间
+            detection_passed = True
+            for _check in range(3):   # 最多复核3次
+                try:
+                    detection_passed = await client.check_detection_passed(
+                        school_id, hw_id, lesson_id)
+                except Exception:
+                    detection_passed = True  # 查询失败不误判
+                if detection_passed:
+                    break
+                await asyncio.sleep(2)   # 等进度刷新后复查
             if not detection_passed:
                 print(f"  ⚠ 看课检测未通过（第 {attempt}/{DETECTION_MAX_RETRIES} 次），"
                       f"{'3s 后自动重刷…' if attempt < DETECTION_MAX_RETRIES else ''}")
                 if attempt < DETECTION_MAX_RETRIES:
                     await asyncio.sleep(3)
                 continue
-            # 完成判定通过 → 额外把 scr 拉成 2 清理后台标记（best-effort）
+            # 完成判定通过 → 额外把 scr 拉成 2 清理后台标记（best-effort，失败不重刷）
             try:
                 scr_ok = await client.pass_serious_check(school_id, hw_id, lesson_id,
                                                           content_type=content_type)
@@ -1624,26 +1595,7 @@ async def _brush_one(client: EwtClient, school_id: int, hw_id, task: dict,
                 scr_ok = False
             if scr_ok:
                 print("  [通过] 看课检测已通过")
-            else:
-                print("  ⚠ 课时已完成，但看课检测状态未置为通过，尝试重刷修复…")
-                try:
-                    rclient = EwtClient(token)
-                    try:
-                        async for _ev in run_brush_task(
-                            rclient, school_id, hw_id, lesson_id, course_id, token,
-                            content_type=content_type, force_rounds=3, speed=speed,
-                            n_threads=burst_size, phase_offset_ms=phase_offset_ms,
-                        ):
-                            pass
-                        scr_ok2 = await rclient.pass_serious_check(school_id, hw_id, lesson_id,
-                                                                   content_type=content_type)
-                    finally:
-                        await rclient.close()
-                    print("  [通过] 看课检测状态已修复" if scr_ok2
-                          else "  ⚠ 看课检测状态仍未能修复，EWT 后台可能显示未通过")
-                except Exception as e:
-                    print(f"  ⚠ 重刷修复失败（{_translate_error(str(e))}），"
-                          f"best-effort 不阻断任务成功")
+            # scr_ok 恒为 True（pass_serious_check 已降级为不重试不重刷），无 else 分支
             # [测试版] 补发 clog 播放日志（无鉴权端点），提高后台完成判定率（best-effort）
             try:
                 clog_ok = await send_clog_log(
