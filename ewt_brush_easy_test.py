@@ -91,8 +91,11 @@ def save_config(cfg: dict):
 def run_cmd(cmd: list, timeout=300) -> tuple:
     """执行命令，返回 (exit_code, output)。"""
     try:
+        # stdin=DEVNULL 让子进程从 /dev/null 读输入，不占用管道（否则管道输入被子进程吃掉）
+        from subprocess import DEVNULL
         p = subprocess.run(cmd, capture_output=True, text=True,
-                           timeout=timeout, encoding="utf-8", errors="replace")
+                           timeout=timeout, encoding="utf-8", errors="replace",
+                           stdin=DEVNULL)
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except subprocess.TimeoutExpired as e:
         return -1, (e.stdout or "") + (e.stderr or "")
@@ -428,18 +431,18 @@ def main():
 
     # ---------- ③ 刷课配置 ----------
     cprint("\n【第 3 步】刷课配置（直接回车用推荐值）")
-    n_inst = ask_int("实例数（并行开的进程数，越多越快）", 1,
-                     "1=单实例；2~4=多实例并行，速度成倍提升", lo=1, hi=8)
-    concurrency = ask_int("外层路数 concurrency（同时刷几个课时）", 12,
-                          "12 最稳最快；14 可试；16 会连接失败", lo=1, hi=14)
-    burst = ask_int("内层路数 burst（单课时内同时发多少上报）", 12,
-                    "12 默认；24 提速明显；36 更快（极限）", lo=1, hi=64)
-    qps = ask("限速 qps（每分钟请求数）", "400",
-              "400 稳妥；100000=不限速（实测WAF不易触发，可放心用）")
+    n_inst = ask_int("实例数（并行开的进程数，越多越快，无上限）", 1,
+                     "测试版：不限制上限，自行决定实例数", lo=1)
+    concurrency = ask_int("外层路数 concurrency（同时刷几个课时，无上限）", 12,
+                          "测试版：不限制上限，自行决定路数", lo=1)
+    burst = ask_int("内层路数 burst（单课时内同时发多少上报，无上限）", 12,
+                    "测试版：不限制上限，自行决定burst", lo=1)
+    qps = ask("限速 qps（每分钟请求数，测试版推荐不限速）", "100000",
+              "100000=不限速；如需限速填具体值（如 400）")
     try:
         qps = float(qps)
     except ValueError:
-        qps = 400.0
+        qps = 100000.0
     if qps <= 0:
         cprint("  ⚠ 注意：qps=0 并不会不限速（脚本bug），已自动改为 100000")
         qps = 100000.0
@@ -459,29 +462,38 @@ def main():
         return
 
     # ---------- ④ 启动 + 监控（失败自动补刷，最多 3 轮） ----------
-    # 先主进程登录一次，通过 TOKEN_FILE 获取 token，传给所有子进程（避免多实例并发登录触发风控）
+    # 主进程先登录一次拿 token，传给所有子进程（避免多实例并发登录触发风控）
     cprint("\n【第 4 步】登录获取 token…")
     token = ""
     try:
-        # 让 v2 引擎写一次 TOKEN_FILE（用 --dry-run 触发登录，不刷课）
+        # 让 v2 引擎 dry-run 登录一次（把 token 写入 EWT_TOKEN_FILE 指向的 TOKEN_FILE）
         cmd = [sys.executable, BRUSH_SCRIPT,
                "--account", account, "--password", password, "--dry-run",
                "--offset", "0", "--limit", "1"]
         env = dict(os.environ)
+        env["EWT_TOKEN_FILE"] = TOKEN_FILE   # 确保 v2 把 token 写到 easy_test 的 TOKEN_FILE
         env["PYTHONUNBUFFERED"] = "1"
-        run_cmd(cmd, timeout=120)
-        # 预登录后直接读 TOKEN_FILE（v2 引擎会把 token 写入此文件）
+        _code, out = run_cmd(cmd, timeout=120)
+        # 从 v2 引擎输出中提取完整 token（新登录会打印"✓ 新 token: xxx"或输出里含完整 token）
+        # 先尝试读 TOKEN_FILE（v2 登录成功会写入）
         if os.path.exists(TOKEN_FILE):
             with open(TOKEN_FILE) as f:
                 token = f.read().strip()
-            # 验证 token 格式
-            if re.match(r"^\d+-(1|2)-[0-9a-fA-F]+$", token):
-                cprint(f"  ✓ 已获取 token: {token[:16]}…{token[-8:]}")
-            else:
-                cprint(f"  ⚠ token 格式异常: {token[:30]}")
-                token = ""
+        # 若 TOKEN_FILE 没有或格式不对，则从输出中提取（兼容）
+        if not token or not re.match(r"^\d+-(1|2)-[0-9a-fA-F]+$", token):
+            for line in out.splitlines():
+                m = re.search(r"(\d+-(1|2)-[0-9a-fA-F]{14,})", line)
+                if m:
+                    token = m.group(1)
+                    break
+        # 验证并写入 TOKEN_FILE（多实例直接 --token 用，读文件可作为兜底）
+        if re.match(r"^\d+-(1|2)-[0-9a-fA-F]+$", token):
+            with open(TOKEN_FILE, "w") as f:
+                f.write(token)
+            cprint(f"  ✓ 已获取 token: {token[:16]}…{token[-8:]}")
         else:
-            cprint("  ⚠ TOKEN_FILE 不存在，子进程将各自登录（可能触发风控）")
+            cprint("  ⚠ 未能获取有效 token，子进程将各自登录（可能触发风控）")
+            token = ""
     except Exception as e:
         cprint(f"  ⚠ 预登录异常: {e}")
 
