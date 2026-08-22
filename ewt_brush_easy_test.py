@@ -114,8 +114,9 @@ def scan_tasks(account: str, password: str, hw: str = "", force_all: bool = Fals
     env["EWT_TOKEN_FILE"] = TOKEN_FILE
     code, out = run_cmd(cmd, timeout=300)
     # 先过滤掉 Python 异常堆栈（网络偶发波动时主脚本内部已自动重试）
+    # 注意：不能按缩进(两空格)过滤，因为 v2 引擎的课时行正是以"  [i/n]"两空格开头
     clean_lines = [l for l in out.splitlines()
-                   if not l.startswith("  ") and not l.startswith("Traceback")
+                   if not l.startswith("Traceback")
                    and "File \"" not in l and "raise" not in l
                    and "httpx" not in l and "Error" not in l]
     out_clean = "\n".join(clean_lines)
@@ -128,10 +129,13 @@ def scan_tasks(account: str, password: str, hw: str = "", force_all: bool = Fals
         cprint(f"\n  ✗ 主脚本启动失败（exit={code}）：{BRUSH_SCRIPT}")
         cprint(f"  ✗ 请确认 {os.path.basename(BRUSH_SCRIPT)} 与 {os.path.basename(__file__)} 在同一目录，且文件有读取权限")
         sys.exit(1)
-    # 解析课时行（v2 格式：科目 标题 [时长] homeworkId=xxx lessonId=xxx）
+    # 解析课时行（v2 格式： [序号/总数] [科目] 标题 (hw=xxx lesson=xxx)）
     lessons = []
     for line in out_clean.splitlines():
         line = line.strip()
+        # 只在包含 "lesson=" 的行才算课时（v2 引擎输出格式固定）
+        if "lesson=" not in line:
+            continue
         if not line or line.startswith("✓") or line.startswith("schoolId") \
                 or line.startswith("查询作业") or "没有未完成" in line \
                 or "强制重刷" in line:
