@@ -150,14 +150,19 @@ def scan_tasks(account: str, password: str, hw: str = "", force_all: bool = Fals
 def build_cmd(account: str, password: str, hw: str,
               inst: int, n_inst: int, total: int,
               concurrency: int, burst: int, qps: float,
-              force_all: bool = False, force_rounds: int = 0) -> list:
+              force_all: bool = False, force_rounds: int = 0,
+              token: str = "") -> list:
     """构造单个实例的命令（自动分片 + 错峰）。force_all=True 时加 --force-all 强制重刷。
-    force_rounds>0 时加 --force-rounds N 指定重刷轮数。"""
+    force_rounds>0 时加 --force-rounds N 指定重刷轮数。
+    token 非空时用 --token 启动（避免多实例并发登录触发风控）。"""
     cmd = [sys.executable, BRUSH_SCRIPT,
            "--account", account, "--password", password,
            "--concurrency", str(concurrency),
            "--burst", str(burst),
            "--qps", str(qps)]
+    if token:
+        # 用已登录的 token 启动，跳过子进程登录（避免多实例并发登录风控）
+        cmd += ["--token", token]
     if force_all:
         cmd += ["--force-all"]           # 强制重刷全部（含已完成）
     if force_rounds and force_rounds > 0:
@@ -177,13 +182,14 @@ def build_cmd(account: str, password: str, hw: str,
 
 def start_instances(account: str, password: str, hw: str, total: int,
                     n_inst: int, concurrency: int, burst: int, qps: float,
-                    force_all: bool = False, force_rounds: int = 0) -> list:
-    """后台启动 N 个实例，返回 (pid, logfile) 列表。"""
+                    force_all: bool = False, force_rounds: int = 0,
+                    token: str = "") -> list:
+    """后台启动 N 个实例，返回 (pid, logfile) 列表。token 非空时传 --token 避免并发登录。"""
     os.makedirs(LOG_DIR, exist_ok=True)
     procs = []
     for i in range(n_inst):
         cmd = build_cmd(account, password, hw, i, n_inst, total,
-                        concurrency, burst, qps, force_all, force_rounds)
+                        concurrency, burst, qps, force_all, force_rounds, token)
         logf = os.path.join(LOG_DIR, f"inst_{i}.log")
         env = dict(os.environ)
         env["EWT_TOKEN_FILE"] = TOKEN_FILE
@@ -453,12 +459,37 @@ def main():
         return
 
     # ---------- ④ 启动 + 监控（失败自动补刷，最多 3 轮） ----------
+    # 先主进程登录一次拿到 token，传给所有子进程（避免多实例并发登录触发风控）
+    cprint("\n【第 4 步】登录获取 token…")
+    token = ""
+    try:
+        cmd = [sys.executable, BRUSH_SCRIPT,
+               "--account", account, "--password", password, "--dry-run",
+               "--offset", "0", "--limit", "1"]
+        env = dict(os.environ)
+        env["PYTHONUNBUFFERED"] = "1"
+        code, out = run_cmd(cmd, timeout=120)
+        # 从输出中提取 token（开头 "✓ 使用 token: xxx" 或 "✓ 登录成功: xxx"）
+        for line in out.splitlines():
+            if "token:" in line or "TOKEN" in line:
+                m = re.search(r"[\d]+-(1|2)-[0-9a-fA-F]+", line)
+                if m:
+                    token = m.group(0)
+                    break
+        if token:
+            cprint(f"  ✓ 已获取 token: {token[:16]}…{token[-8:]}")
+        else:
+            cprint("  ⚠ 未能自动获取 token，子进程将各自登录（可能触发风控）")
+    except Exception as e:
+        cprint(f"  ⚠ 预登录异常: {e}")
+
     brush_round = 0
     while True:
         brush_round += 1
         cprint(f"\n【第 4 步】启动刷课（第 {brush_round} 轮）...")
         procs = start_instances(account, password, hw, total,
-                                n_inst, concurrency, burst, qps, force_all, force_rounds)
+                                n_inst, concurrency, burst, qps,
+                                force_all, force_rounds, token)
         monitor(procs, total, lessons)
 
         # ---------- ⑤ 完成验证 ----------
