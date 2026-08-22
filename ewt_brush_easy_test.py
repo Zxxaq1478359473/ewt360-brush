@@ -141,16 +141,13 @@ def scan_tasks(account: str, password: str, hw: str = "") -> list:
 # ======================================================================
 def build_cmd(account: str, password: str, hw: str,
               inst: int, n_inst: int, total: int,
-              concurrency: int, burst: int, qps: float,
-              force_all: bool = False) -> list:
-    """构造单个实例的命令（自动分片 + 错峰）。force_all=True 时加 --force-all 强制重刷。"""
+              concurrency: int, burst: int, qps: float) -> list:
+    """构造单个实例的命令（自动分片 + 错峰）。"""
     cmd = [sys.executable, BRUSH_SCRIPT,
            "--account", account, "--password", password,
            "--concurrency", str(concurrency),
            "--burst", str(burst),
            "--qps", str(qps)]
-    if force_all:
-        cmd += ["--force-all"]           # 强制重刷全部（含已完成），每课时至少2轮
     if hw:
         cmd += ["--hw", hw]
     chunk = (total + n_inst - 1) // n_inst          # 每片数量（向上取整）
@@ -165,14 +162,13 @@ def build_cmd(account: str, password: str, hw: str,
 
 
 def start_instances(account: str, password: str, hw: str, total: int,
-                    n_inst: int, concurrency: int, burst: int, qps: float,
-                    force_all: bool = False) -> list:
+                    n_inst: int, concurrency: int, burst: int, qps: float) -> list:
     """后台启动 N 个实例，返回 (pid, logfile) 列表。"""
     os.makedirs(LOG_DIR, exist_ok=True)
     procs = []
     for i in range(n_inst):
         cmd = build_cmd(account, password, hw, i, n_inst, total,
-                        concurrency, burst, qps, force_all)
+                        concurrency, burst, qps)
         logf = os.path.join(LOG_DIR, f"inst_{i}.log")
         env = dict(os.environ)
         env["EWT_TOKEN_FILE"] = TOKEN_FILE
@@ -412,18 +408,11 @@ def main():
         cprint("  ⚠ 注意：qps=0 并不会不限速（脚本bug），已自动改为 100000")
         qps = 100000.0
 
-    # 强制重刷选项
-    force_all = ask("\n  是否强制重刷全部课时（含已完成，修复看课检测）？(y/N)", "N",
-                    "默认N=只刷未完成；y=强制重刷全部，每课时至少跑2轮").lower() in ("y", "yes")
-    if force_all:
-        cprint("  ⚠ 已开启强制重刷：将扫描并重刷全部课时（含已完成），耗时更长")
-
     # 确认
     cprint("\n  ── 配置确认 ──")
     cprint(f"     账号: {account}")
     cprint(f"     课时数: {total}")
     cprint(f"     实例数: {n_inst}  |  外层路数: {concurrency}  |  内层路数: {burst}  |  qps: {qps:g}")
-    cprint(f"     模式: {'🔁 强制重刷全部' if force_all else '▶ 只刷未完成'}")
     if n_inst > 1:
         chunk = (total + n_inst - 1) // n_inst
         cprint(f"     分片: 每片约 {chunk} 个，实例间错峰 5 秒")
@@ -438,7 +427,7 @@ def main():
         brush_round += 1
         cprint(f"\n【第 4 步】启动刷课（第 {brush_round} 轮）...")
         procs = start_instances(account, password, hw, total,
-                                n_inst, concurrency, burst, qps, force_all)
+                                n_inst, concurrency, burst, qps)
         monitor(procs, total, lessons)
 
         # ---------- ⑤ 完成验证 ----------
