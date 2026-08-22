@@ -819,10 +819,12 @@ def _get_client() -> httpx.AsyncClient:
 
 class BrushEvent:
     __slots__ = ("type", "round", "play_time_ms", "percent", "needed_ms",
-                 "requests_ok", "requests_total", "credited_sec", "message")
+                 "requests_ok", "requests_total", "credited_sec", "message",
+                 "lesson_time_ms")
 
     def __init__(self, type, round=0, play_time_ms=0, percent=0.0, needed_ms=0,
-                 requests_ok=0, requests_total=0, credited_sec=0, message=""):
+                 requests_ok=0, requests_total=0, credited_sec=0, message="",
+                 lesson_time_ms=0):
         self.type = type          # "progress" | "done" | "error" | "waf_blocked"
         self.round = round
         self.play_time_ms = play_time_ms
@@ -832,6 +834,7 @@ class BrushEvent:
         self.requests_total = requests_total
         self.credited_sec = credited_sec
         self.message = message
+        self.lesson_time_ms = lesson_time_ms
 
 
 class QuizTimepoint:
@@ -1198,6 +1201,7 @@ async def run_brush_task(
                 type="progress", round=round_num,
                 play_time_ms=current_play_time, percent=pct,
                 needed_ms=needed, requests_ok=ok_count, requests_total=total_reqs,
+                lesson_time_ms=finish_play_time,
             )
             # 停滞检测：两层恢复策略
             # 机制A: 弹题检测 → 答题绕过（仅非强制模式）
@@ -1250,6 +1254,7 @@ async def run_brush_task(
                                     type="progress", round=round_num,
                                     play_time_ms=current_play_time, percent=info3.get("percent", 0),
                                     needed_ms=needed, requests_ok=ok_count, requests_total=total_reqs,
+                                    lesson_time_ms=finish_play_time,
                                 )
                                 continue
                         except Exception:
@@ -1298,6 +1303,7 @@ async def run_brush_task(
                             type="progress", round=round_num,
                             play_time_ms=current_play_time, percent=info3.get("percent", 0),
                             needed_ms=needed, requests_ok=ok_count, requests_total=total_reqs,
+                            lesson_time_ms=finish_play_time,
                         )
                         continue
                     # 强制轮次中 delta=0 是预期行为（已100%），不计入停滞
@@ -1423,6 +1429,7 @@ async def _run_once(client: EwtClient, school_id: int, hw_id, lesson_id, course_
     ):
         if ev.type == "progress":
             print(f"  [进度][{lesson_id}] 第 {ev.round} 轮 | 已播 {ev.play_time_ms / 1000:.0f}s"
+                  f"/总长 {ev.lesson_time_ms / 1000:.0f}s"
                   f" | 还需 {ev.needed_ms / 1000:.0f}s"
                   f" | 请求 {ev.requests_ok}/{ev.requests_total}", flush=True)
         elif ev.type == "done":

@@ -213,23 +213,34 @@ def render_progress_bar(pct: float, width: int = 20) -> str:
 
 
 def parse_progress_from_log(logf: str) -> dict:
-    """解析实例日志，提取每个课时的当前进度（lesson_id -> 已播/还需）。
-    返回 {lesson_id: {'played': float, 'needed': float, 'done': bool, 'done_ratio': float}}"""
+    """解析实例日志，提取每个课时的当前进度（lesson_id -> 已播/总长/完成）。
+    返回 {lesson_id: {'played': float, 'total': float, 'done': bool, 'done_ratio': float}}"""
     out = {}
     try:
         with open(logf, encoding="utf-8", errors="replace") as f:
             for line in f:
-                m = re.search(r"\[进度\]\[(\d+)\].*?已播 ([\d.]+)s.*?还需 ([\d.]+)s", line)
+                # 新格式：[进度][12345] 第N轮 | 已播 XXXs/总长 YYYs | 还需 ZZZs | 请求 X/Y
+                m = re.search(r"\[进度\]\[(\d+)\].*?已播 ([\d.]+)s/总长 ([\d.]+)s", line)
                 if m:
                     lid = m.group(1)
                     played = float(m.group(2))
-                    needed = float(m.group(3))
-                    ratio = round(played / (played + needed + 1e-9) * 100, 1)
-                    out[lid] = {"played": played, "needed": needed,
+                    total = float(m.group(3))
+                    ratio = round(played / (total + 1e-9) * 100, 1) if total > 0 else 0.0
+                    out[lid] = {"played": played, "total": total,
                                 "done": False, "done_ratio": ratio}
+                # 向下兼容旧格式（无总长）
+                if not m:
+                    m = re.search(r"\[进度\]\[(\d+)\].*?已播 ([\d.]+)s.*?还需 ([\d.]+)s", line)
+                    if m:
+                        lid = m.group(1)
+                        played = float(m.group(2))
+                        needed = float(m.group(3))
+                        ratio = round(played / (played + needed + 1e-9) * 100, 1)
+                        out[lid] = {"played": played, "total": played + needed,
+                                    "done": False, "done_ratio": ratio}
                 c = re.search(r"\[完成\]\[(\d+)\]", line)
                 if c:
-                    out[c.group(1)] = {"played": 1e9, "needed": 0,
+                    out[c.group(1)] = {"played": 1e9, "total": 1e9,
                                         "done": True, "done_ratio": 100.0}
     except Exception:
         pass
@@ -285,7 +296,7 @@ def monitor(procs: list, total: int, lessons=None, refresh_interval: float = 3.0
                         pct = info.get("done_ratio", 0.0)
                         bar = render_progress_bar(pct)
                         line = (f"    ▶ [{label[:24]:<24}] {bar}  "
-                                f"已播{info.get('played',0):.0f}s/还需{info.get('needed',0):.0f}s")
+                                f"已播{info.get('played',0):.0f}s/总长{info.get('total',0):.0f}s")
                     cprint(line)
             # 无课时进度时给个提示
             if not any(parse_progress_from_log(lf) for _, lf in procs):
