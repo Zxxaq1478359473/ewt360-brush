@@ -459,27 +459,29 @@ def main():
         return
 
     # ---------- ④ 启动 + 监控（失败自动补刷，最多 3 轮） ----------
-    # 先主进程登录一次拿到 token，传给所有子进程（避免多实例并发登录触发风控）
+    # 先主进程登录一次，通过 TOKEN_FILE 获取 token，传给所有子进程（避免多实例并发登录触发风控）
     cprint("\n【第 4 步】登录获取 token…")
     token = ""
     try:
+        # 让 v2 引擎写一次 TOKEN_FILE（用 --dry-run 触发登录，不刷课）
         cmd = [sys.executable, BRUSH_SCRIPT,
                "--account", account, "--password", password, "--dry-run",
                "--offset", "0", "--limit", "1"]
         env = dict(os.environ)
         env["PYTHONUNBUFFERED"] = "1"
-        code, out = run_cmd(cmd, timeout=120)
-        # 从输出中提取 token（开头 "✓ 使用 token: xxx" 或 "✓ 登录成功: xxx"）
-        for line in out.splitlines():
-            if "token:" in line or "TOKEN" in line:
-                m = re.search(r"[\d]+-(1|2)-[0-9a-fA-F]+", line)
-                if m:
-                    token = m.group(0)
-                    break
-        if token:
-            cprint(f"  ✓ 已获取 token: {token[:16]}…{token[-8:]}")
+        run_cmd(cmd, timeout=120)
+        # 预登录后直接读 TOKEN_FILE（v2 引擎会把 token 写入此文件）
+        if os.path.exists(TOKEN_FILE):
+            with open(TOKEN_FILE) as f:
+                token = f.read().strip()
+            # 验证 token 格式
+            if re.match(r"^\d+-(1|2)-[0-9a-fA-F]+$", token):
+                cprint(f"  ✓ 已获取 token: {token[:16]}…{token[-8:]}")
+            else:
+                cprint(f"  ⚠ token 格式异常: {token[:30]}")
+                token = ""
         else:
-            cprint("  ⚠ 未能自动获取 token，子进程将各自登录（可能触发风控）")
+            cprint("  ⚠ TOKEN_FILE 不存在，子进程将各自登录（可能触发风控）")
     except Exception as e:
         cprint(f"  ⚠ 预登录异常: {e}")
 
