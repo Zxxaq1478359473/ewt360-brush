@@ -60,6 +60,7 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 | `ewt_brush_easy_v3.py` | ~25 KB | ⭐ **V3 傻瓜入口**（推荐） | 问答式引导，自动多实例分片 + 课时级进度条面板，配置无上限 |
 | `v2/ewt_brush_v2.py` | ~72 KB | V2 引擎（稳定版） | 原版保留，只刷视频课时 |
 | `v2/ewt_brush_easy.py` | ~14 KB | V2 傻瓜入口（稳定版） | 原版简单引导 |
+| `requirements.txt` | — | 依赖清单 | `pip install -r requirements.txt` 一键安装（httpx + pycryptodome） |
 | `EWT刷课使用教程（傻瓜版）.md` | — | 本教程 | |
 
 > 🏆 **选哪个？**
@@ -121,11 +122,15 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 - **macOS**：安装 [Homebrew](https://brew.sh/) 后执行 `brew install python`
 - **Linux（Ubuntu/Debian）**：`sudo apt install -y python3 python3-pip`
 
-**② 安装依赖（只需两个，一条命令）**
+**② 安装依赖（使用 requirements.txt，一键安装）**
+仓库自带 `requirements.txt`（标准 Python 依赖清单文件，已列出全部依赖），复制脚本时一并拷到同目录，然后：
 ```bash
+pip3 install -r requirements.txt
+# 等价于（requirements.txt 当前内容）：
 pip3 install httpx pycryptodome
 ```
-> 两个包分别是：`httpx`（网络请求）+ `pycryptodome`（AES 加密登录），缺一不可。
+> `requirements.txt` 当前内容：`httpx>=0.24.0`（网络请求）+ `pycryptodome>=3.19.0`（AES 加密登录），缺一不可。
+> 之后新增依赖只需更新 requirements.txt，用户一键重装即可。
 
 **③ 把脚本文件夹放到电脑上**
 把 `ewt_brush_easy_v3.py` + `ewt_brush_v3.py`（V3 推荐）放到同一个文件夹，例如 `C:\ewt` 或 `~/ewt`。
@@ -193,8 +198,9 @@ pkg update && pkg upgrade -y
 
 ```bash
 pkg install -y python            # 装 Python 3（Termux 里 python 命令生效）
-pip install httpx pycryptodome   # 装两个依赖：网络请求库 + AES加密库
+pip install -r requirements.txt  # 用 requirements.txt 一键安装依赖（httpx + pycryptodome）
 ```
+> `requirements.txt` 是标准 Python 依赖清单文件（仓库自带），当前含：`httpx>=0.24.0`（网络请求）+ `pycryptodome>=3.19.0`（AES 加密）。
 
 验证是否装好（看到 `OK` 即成功）：
 ```bash
