@@ -122,15 +122,41 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 - **macOS**：安装 [Homebrew](https://brew.sh/) 后执行 `brew install python`
 - **Linux（Ubuntu/Debian）**：`sudo apt install -y python3 python3-pip`
 
-**② 安装依赖（使用 requirements.txt，一键安装）**
-仓库自带 `requirements.txt`（标准 Python 依赖清单文件，已列出全部依赖），复制脚本时一并拷到同目录，然后：
+**② 安装依赖（使用 requirements.txt 一键安装）**
+仓库自带 `requirements.txt` 依赖清单文件（标准 Python 格式，已列出全部依赖）。**复制脚本时把 `requirements.txt` 也一并拷到同目录**，然后进入脚本目录执行安装：
+
 ```bash
+cd 你的脚本目录          # 例如：cd ~/ewt
 pip3 install -r requirements.txt
-# 等价于（requirements.txt 当前内容）：
-pip3 install httpx pycryptodome
 ```
-> `requirements.txt` 当前内容：`httpx>=0.24.0`（网络请求）+ `pycryptodome>=3.19.0`（AES 加密登录），缺一不可。
-> 之后新增依赖只需更新 requirements.txt，用户一键重装即可。
+> 这一步会自动读取 `requirements.txt` 里列出的全部依赖并逐个安装（当前只有 httpx 和 pycryptodome 两个），无需手动记住要装什么。
+
+**✅ 验证是否装好**（看到 `OK` 即成功）：
+```bash
+python3 -c "import httpx, Crypto; print('OK')"
+```
+
+**📦 requirements.txt 当前内容（共 2 个依赖，缺一不可）：**
+```
+httpx>=0.24.0        # 网络请求库，负责与 EWT 服务器通信
+pycryptodome>=3.19.0 # AES 加密库，负责登录密码加密
+```
+> - `httpx` 是异步 HTTP 客户端，所有 API 请求都靠它
+> - `pycryptodome` 提供 `Crypto` 模块，登录时用 AES-CBC 加密密码
+> - 如果提示 `ModuleNotFoundError`，说明没装全，重跑上面的 `pip3 install -r requirements.txt` 即可
+
+**🔧 其他常用依赖命令（傻瓜式）：**
+```bash
+# 已装过依赖但想确认/升级到 requirements.txt 指定版本
+pip3 install -r requirements.txt --upgrade
+
+# 只安装 requirements.txt 里缺失的依赖（不重复装已有的）
+pip3 install -r requirements.txt
+
+# 查看已安装的依赖版本
+pip3 list | grep -E "httpx|pycryptodome"
+```
+> 之后如果脚本升级增加了新依赖，只需更新 `requirements.txt`，用户再跑一次 `pip3 install -r requirements.txt` 即可。
 
 **③ 把脚本文件夹放到电脑上**
 把 `ewt_brush_easy_v3.py` + `ewt_brush_v3.py`（V3 推荐）放到同一个文件夹，例如 `C:\ewt` 或 `~/ewt`。
@@ -194,20 +220,21 @@ pkg update && pkg upgrade -y
 
 ---
 
-**③ 安装 Python 和两根依赖**
-
+**③ 安装 Python 和依赖（用 requirements.txt 一键装）**
 ```bash
-pkg install -y python            # 装 Python 3（Termux 里 python 命令生效）
-pip install -r requirements.txt  # 用 requirements.txt 一键安装依赖（httpx + pycryptodome）
+pkg install -y python            # 第 1 步：装 Python 3（Termux 里 python 命令生效）
+pip install -r requirements.txt  # 第 2 步：用 requirements.txt 一键安装全部依赖
 ```
-> `requirements.txt` 是标准 Python 依赖清单文件（仓库自带），当前含：`httpx>=0.24.0`（网络请求）+ `pycryptodome>=3.19.0`（AES 加密）。
+> `requirements.txt` 是标准 Python 依赖清单文件（仓库自带），已列出全部依赖（httpx + pycryptodome）。**把 requirements.txt 和脚本放同一目录**，执行上面的命令就会自动装好，无需手动逐个装。
 
-验证是否装好（看到 `OK` 即成功）：
+**✅ 验证是否装好**（看到 `OK` 即成功）：
 ```bash
 python -c "import httpx, Crypto; print('OK')"
 ```
 
----
+**⚠️ 常见问题：**
+- 如果报 `No module named httpx` 或 `No module named Crypto`，说明没装全，重跑 `pip install -r requirements.txt` 即可
+- Termux 里 python 用 `python` 命令（电脑端用 `python3`）
 
 **④ 授权存储访问（关键步骤）**
 
