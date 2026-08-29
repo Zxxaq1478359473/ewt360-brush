@@ -106,7 +106,7 @@ ewt360-brush/
 ## 🛠 环境要求
 
 - Python **3.10+**
-- 仅需两个依赖：
+- **依赖清单（requirements.txt）**：仓库自带 `requirements.txt`，已列出全部依赖（当前仅 2 个），一键安装：
 
 ```bash
 pip install -r requirements.txt
@@ -114,7 +114,8 @@ pip install -r requirements.txt
 pip install httpx pycryptodome
 ```
 
-> httpx：网络请求；pycryptodome：AES 加密登录（提供 Crypto 模块）。缺一不可。
+> `requirements.txt` 是标准 Python 依赖清单文件，`pip install -r requirements.txt` 会按文件内容自动安装所有依赖并校验版本。
+> 当前内容：`httpx>=0.24.0`（网络请求）、`pycryptodome>=3.19.0`（AES 加密登录）。
 
 | 功能 | 说明 |
 |---|---|
@@ -347,7 +348,7 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 
 👉 扫一扫，立刻赞赏！扫码备注 `ewt360` 即可，感谢每一份支持 ❤️
 
-<img src="./97640.png" width="450" alt="微信赞赏码">
+<img src="./97640.png" width="600" alt="微信赞赏码">
 
 <a href="https://github.com/Zxxaq1478359473/ewt360-brush/stargazers">
   <img src="https://img.shields.io/github/stars/Zxxaq1478359473/ewt360-brush?style=social&label=Star%20%E6%94%AF%E6%8C%81" alt="Star 支持">
