@@ -131,6 +131,13 @@ pip3 install -r requirements.txt
 ```
 > 这一步会自动读取 `requirements.txt` 里列出的全部依赖并逐个安装（当前只有 httpx 和 pycryptodome 两个），无需手动记住要装什么。
 
+**方式二：直接安装（不用 requirements.txt 也可以）**
+如果你没拷 requirements.txt，或想手动装，直接运行等价命令：
+```bash
+pip3 install httpx pycryptodome
+```
+> 这与 `pip3 install -r requirements.txt` 完全等价（因为 requirements.txt 里就是这两行），任选一种即可。
+
 **✅ 验证是否装好**（看到 `OK` 即成功）：
 ```bash
 python3 -c "import httpx, Crypto; print('OK')"
@@ -226,6 +233,13 @@ pkg install -y python            # 第 1 步：装 Python 3（Termux 里 python 
 pip install -r requirements.txt  # 第 2 步：用 requirements.txt 一键安装全部依赖
 ```
 > `requirements.txt` 是标准 Python 依赖清单文件（仓库自带），已列出全部依赖（httpx + pycryptodome）。**把 requirements.txt 和脚本放同一目录**，执行上面的命令就会自动装好，无需手动逐个装。
+
+**方式二：直接安装（不用 requirements.txt 也可以）**
+如果你没拷 requirements.txt，或想手动装，直接运行等价命令：
+```bash
+pip install httpx pycryptodome
+```
+> 这与 `pip install -r requirements.txt` 完全等价（因为 requirements.txt 里就是这两行），任选一种即可。
 
 **✅ 验证是否装好**（看到 `OK` 即成功）：
 ```bash
