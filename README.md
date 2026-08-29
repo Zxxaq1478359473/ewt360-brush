@@ -69,8 +69,9 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 ewt360-brush/
 ├── ewt_brush_v3.py          # ⭐ V3 引擎（推荐，功能最全）
 ├── ewt_brush_easy_v3.py     # ⭐ V3 傻瓜式入口（提问式引导）
-├── ewt_brush_v2.py          # V2 引擎（稳定版）
-├── ewt_brush_easy.py        # V2 傻瓜式入口
+├── v2/                      # V2 稳定版（单独文件夹）
+│   ├── ewt_brush_v2.py      #   V2 引擎
+│   └── ewt_brush_easy.py    #   V2 傻瓜式入口
 ├── requirements.txt         # 依赖（仅 2 个）
 ├── LICENSE                  # MIT License
 ├── original/                # 原作者原始脚本（存档与溯源）
@@ -81,6 +82,7 @@ ewt360-brush/
 ```
 
 > 设计理念：easy 只是遥控器（引导/调度/监控），刷课逻辑全在引擎里，代码不重复、易维护。
+> V3 与 V2 分开放置，互不干扰。
 
 ---
 
@@ -160,7 +162,13 @@ python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
 
 ### 方式三：V2 稳定版 / 原始版 spark.py
 
-**V2 稳定版**（若想用原版）：把上面命令里的 `ewt_brush_v3.py` / `ewt_brush_easy_v3.py` 换成 `ewt_brush_v2.py` / `ewt_brush_easy.py` 即可。
+**V2 稳定版**（若想用原版）：V2 文件在独立的 `v2/` 文件夹，先进入再运行：
+```bash
+cd v2
+python3 ewt_brush_easy.py       # V2 傻瓜入口
+# 或引擎：
+python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 --concurrency 18 --burst 48 --qps 100000
+```
 
 **原始版 spark.py**（仅接受 token）：
 ```bash
