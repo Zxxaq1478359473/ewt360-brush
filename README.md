@@ -281,6 +281,7 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 | 506 当前账号无权限播放 | 该课时所属作业非本账号权限范围（如未购买的组合课程），无法刷 |
 | 想重刷已完成课时 | --force-rounds 3 |
 | 账号被封/锁定 | 换账号或联系平台客服 |
+| Windows UnicodeEncodeError | 脚本已内置 UTF-8 加固；若仍报错：PowerShell 运行 `$env:PYTHONUTF8="1" ; py ewt_brush_v3.py`；CMD 运行 `set PYTHONUTF8=1 && py ewt_brush_v3.py` |
 
 ---
 

@@ -45,6 +45,13 @@ import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+# ---- Windows/终端 UTF-8 加固：避免中文 UnicodeEncodeError ----
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # ======================================================================
 # [常量]
 # ======================================================================

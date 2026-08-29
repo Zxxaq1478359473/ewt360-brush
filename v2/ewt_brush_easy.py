@@ -19,6 +19,13 @@ import subprocess
 import sys
 import time
 
+# ---- Windows/终端 UTF-8 加固：避免中文 UnicodeEncodeError ----
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # ======================================================================
 # [路径]
 # ======================================================================

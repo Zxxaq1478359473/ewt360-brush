@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EWT360 傻瓜式刷课引导器 - 【测试版】（ewt_brush_easy_v3.py）
+EWT360 傻瓜式刷课引导器 - 【V3正式版】（ewt_brush_easy_v3.py）
 =============================================
 一进去只需要回答几个问题，其余全部自动完成：
-
    ① 输入账号 / 密码
    ② 自动识别任务（扫描并列出所有未完成的课时）
    ③ 刷课配置（实例数 / concurrency / burst / qps）
    ④ 自动登录 → 自动分片 → 多实例后台启动 → 实时监控 → 完成验证
-
 依赖：ewt_brush_v3.py 放在同目录。
 用法：python3 ewt_brush_easy_v3.py
+
+【Windows 中文乱码/UnicodeEncodeError 修复】
+  本脚本已在内部强制 UTF-8 输出，无需手动设置环境变量。
+  若仍遇到 UnicodeEncodeError，可临时运行：
+    PowerShell:  $env:PYTHONUTF8=\"1\" ; py ewt_brush_easy_v3.py
+    CMD:         set PYTHONUTF8=1 && py ewt_brush_easy_v3.py
 """
 import json
 import os
@@ -19,6 +23,13 @@ import re
 import subprocess
 import sys
 import time
+
+# ---- Windows/终端 UTF-8 加固：强制 stdout/stderr 用 UTF-8，避免中文 UnicodeEncodeError ----
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 # ======================================================================
 # [路径]
