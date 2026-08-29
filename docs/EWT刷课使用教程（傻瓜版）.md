@@ -1,7 +1,7 @@
 # 🚀 EWT360 傻瓜式刷课工具 — 完整使用教程
 
 > 版本：v2.0（2026-08-16）
-> 文件：`ewt_brush_easy.py`（傻瓜入口）+ `ewt_brush_v2.py`（刷课引擎）  两文件要放同一目录下
+> 推荐文件：`ewt_brush_easy_v3.py`（傻瓜入口）+ `ewt_brush_v3.py`（刷课引擎）  两文件要放同一目录下
 > 一句话：**运行后按提示回答几个问题，自动完成登录、识别课时、刷课、监控、验证。**
 
 ---
@@ -128,7 +128,7 @@ pip3 install httpx pycryptodome
 > 两个包分别是：`httpx`（网络请求）+ `pycryptodome`（AES 加密登录），缺一不可。
 
 **③ 把脚本文件夹放到电脑上**
-把 `ewt_brush_easy.py` + `ewt_brush_v2.py`（+ 本教程）放到同一个文件夹，例如 `C:\ewt` 或 `~/ewt`。
+把 `ewt_brush_easy_v3.py` + `ewt_brush_v3.py`（V3 推荐）放到同一个文件夹，例如 `C:\ewt` 或 `~/ewt`。
 
 **④ 验证安装**
 ```bash
@@ -139,7 +139,7 @@ python3 -c "import httpx, Crypto; print('OK')"
 **⑤ 进入文件夹并运行**
 ```bash
 cd 你的脚本目录          # 例如 Windows: cd C:\ewt   /  Mac/Linux: cd ~/ewt
-python3 ewt_brush_easy.py
+python3 ewt_brush_easy_v3.py
 ```
 
 ---
@@ -284,7 +284,7 @@ python ewt_brush_easy_v3.py                  # 3. 开刷（已完成的自动跳
 
 1. 应用商店安装 **Pydroid 3**（免费版即可）
 2. 打开 → 菜单 → **Pip** → 输入 `httpx pycryptodome` → 安装
-3. 把 `ewt_brush_easy.py` 和 `ewt_brush_v2.py` 拷贝到手机**公共存储**（如 `Download/`，**不要放 Pydroid 私有目录**），Pydroid 菜单 → 打开文件 → 选 `ewt_brush_easy.py`
+3. 把 `ewt_brush_easy_v3.py` 和 `ewt_brush_v3.py` 拷贝到手机**公共存储**（如 `Download/`，**不要放 Pydroid 私有目录**），Pydroid 菜单 → 打开文件 → 选 `ewt_brush_easy_v3.py`
 4. 点运行按钮即可（交互式提问照常显示）
 5. 注意：Pydroid 是前台应用，**息屏可能暂停**，建议刷课时保持亮屏并插电
 
@@ -333,7 +333,7 @@ python ewt_brush_easy_v3.py                  # 3. 开刷（已完成的自动跳
 >
 > 顶部会提示：`📌 监控时输入：数字1-30=调刷新间隔(秒) | 回车=立即刷新 | q=退出监控（后台继续刷）`
 
-**【正式版入口（ewt_brush_easy.py）】** 仍是简单的单行进度（每 20 秒刷新）：
+**【V3 傻瓜入口（ewt_brush_easy_v3.py）】** 实时进度条面板（见上方）。
 ```
 ⏱ 03m25s  已完成 47/193  错误 0  WAF 0  运行中 4 实例
 ```
@@ -384,13 +384,13 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 1. **自动验证**：所有实例退出后，工具自动重新扫描，显示"🎉 全部课时已刷完！"即完成
 2. **手动验证**（任何时候都可以）：
    ```bash
-   python3 ewt_brush_v2.py --dry-run --account 你的账号 --password 你的密码
+   python3 ewt_brush_v3.py --dry-run --account 你的账号 --password 你的密码
    ```
    看到 `没有未完成的课时（可能已全部刷完）` = 全部完成 ✅
 
 #### 中途中断/关机会丢进度吗？
 
-不会。已刷完的课时服务器已记录，**下次运行扫描会自动跳过已完成**，只刷剩下的，不重不漏。重新运行 `python3 ewt_brush_easy.py` 即可续刷。
+不会。已刷完的课时服务器已记录，**下次运行扫描会自动跳过已完成**，只刷剩下的，不重不漏。重新运行 `python3 ewt_brush_easy_v3.py` 即可续刷。
 
 ---
 
@@ -504,7 +504,7 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 **💥 最新实测验证（单实例高路数）**：
 > `并行路数: 18 | QPS: 100000 | 竞态爆发: 48路` → **407 分钟视频（1578min39s）仅用 3 分 21 秒刷完**，123 个课时全部一次通过，无重刷、无卡顿！
 >
-> 配置：`python3 ewt_brush_v2.py --concurrency 18 --burst 48 --qps 100000`（单实例）
+> 配置：`python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000`（单实例）
 
 **结论**：
 - **新手强烈建议用"单实例 不限速 + 高路数"**（如 18路 + burst48 + qps100000），稳定、易操控、无需开多个终端
@@ -605,20 +605,20 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 
 ```bash
 # 强制重刷全部课时（默认每课时至少2轮）
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 --force-all \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 --force-all \
     --concurrency 12 --burst 24 --qps 100000
 
 # 指定作业 + 指定轮数（更彻底：每课时强制3轮）
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 --hw 10516876 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 --hw 10516876 \
     --force-all --force-rounds 3 --concurrency 12 --burst 24 --qps 100000
 
 # 先预览会重刷哪些（--force-all --dry-run 会列出含已完成的全部课时）
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 --force-all --dry-run
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 --force-all --dry-run
 
 # 多实例分片重刷（每实例都加 --force-all，分片基于"全部课时"列表）
-python3 ewt_brush_v2.py --account X --password Y --force-all \
+python3 ewt_brush_v3.py --account X --password Y --force-all \
     --concurrency 12 --burst 24 --qps 100000 --offset 0 --limit 28
-python3 ewt_brush_v2.py --account X --password Y --force-all \
+python3 ewt_brush_v3.py --account X --password Y --force-all \
     --concurrency 12 --burst 24 --qps 100000 --offset 28 --limit 28 --phase-offset 5000
 ```
 
@@ -652,20 +652,20 @@ python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 --force-a
 
 ```bash
 # 预检扫描
-python3 ewt_brush_v2.py --dry-run --account 你的账号 --password 你的密码
+python3 ewt_brush_v3.py --dry-run --account 你的账号 --password 你的密码
 
 # 单实例极速
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000
 
 # 多实例（4个）手动分片（终端1~4各跑一条）
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 0 --limit 25
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 25 --limit 25 --phase-offset 5000
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 50 --limit 25 --phase-offset 10000
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 75 --limit 0 --phase-offset 15000
 
 # FM 课时（心灵成长/生涯规划音频）——用测试版引擎自动直写（含 FM/板报）
@@ -675,6 +675,6 @@ python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
 python3 ewt_brush_easy_v3.py
 
 # 查看全部参数
-python3 ewt_brush_v2.py --help
+python3 ewt_brush_v3.py --help
 # 查看 V3 参数：python3 ewt_brush_v3.py --help
 ```
