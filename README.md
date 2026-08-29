@@ -2,6 +2,9 @@
 
 > 自包含、多实例并行的 EWT360（升学 e网通）网课平台刷课脚本。
 > 自动完成登录、扫描、刷课、监控、验证全流程，单文件即可运行。
+> 
+> **V3 正式版**（推荐）— 基于 V2 增强，新增 FM/板报直写、clog 补发、过课检测优化、登录签名头降风控、进度条面板、判定阈值优化等。
+> **V2 稳定版** — 保留原版，稳定可靠。
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
@@ -28,30 +31,20 @@
 EWT360 是网课平台，老师布置的作业中包含大量视频课时，需要逐一看完才算完成。
 本工具通过模拟官方播放器的播放上报协议，并利用**竞态爆发**并发技巧，把几十个小时的视频课压缩到几分钟刷完，进度 100% 完成。
 
-**实测**：单实例 18路 + burst48 + 不限速下，刷 1 小时视频仅需 **7.6 秒**（效率 RATIO ≈ 0.0021）；实测 1578 分钟（407 小时）视频 **3 分 21 秒刷完**。
+**实测**：单实例 18路 + burst48 + 不限速下，刷 1 小时视频仅需 **7.6 秒**（效率 RATIO ≈ 0.0021）；实测 1578 分钟视频 **3 分 21 秒刷完**。
 
 ---
 
-## 🧪 测试版（ewt_brush_v2_test.py）
+## 📦 版本说明
 
-> 基于 5 个开源仓库（zjy2fz/ewt-auto-study、ECXiaobai/ewt360_tool、Klece/killewt、cny123/ewt360-course-tool、hmruu/ewt360）交叉研究后的实验版本，与正式版 `ewt_brush_v2.py` 并存，**不覆盖原版**。
-
-| 新增能力 | 说明 | 参考 |
+| 版本 | 文件 | 说明 |
 |---|---|---|
-| 🔐 登录签名头 | 补齐 Web 端 `sign=MD5(ts+key)` / `secretid=2` / `timestamp` / `autoLogin`，模拟真实浏览器登录，降低"请完成安全验证"风控概率 | ECXiaobai / cny123 |
-| 🎧 FM收听(ct=3) | `updateMission` 一次直写 100%，不走播放心跳 | ECXiaobai/ewt360_tool |
-| 📋 板报(ct=5) | 同上，一次直写 100% | ECXiaobai/ewt360_tool |
-| 📡 clog 日志补发 | 完成判定后向 `clog.ewt360.com`（无鉴权）补发 4 段播放日志，提高后台完成判定率 | zjy2fz/ewt-auto-study |
-| ✅ 过课检测参数对齐 | 校本视频(ct=11) lessonId **+2000000** 偏移；`type` 按 contentType 计算（视频=1/其他=2）——修复看课检测置2失败 | luoying2334/EWT360-NEW-Helper |
-| ✅ 判定阈值 0.8 | 完成判定 `percent>=0.8`（平台真实阈值，原 1.0 过严会误判重刷）；seriousCheckResult 直查优先、翻页兜底 | spark 更新版 cx.py |
-| 🧪 傻瓜式入口 | `ewt_brush_easy_test.py`——测试版专属问答式引导（账号→扫描→配置→多实例→监控→验证全自动） | 同 easy |
-
-> ⚠️ 试卷（contentType=2）不在测试版范围内（未实现）。
-> 其余逻辑与原版完全一致；若测试版出现异常，请回退正式版 `ewt_brush_v2.py`。
+| **V3 正式版** ⭐ | `ewt_brush_v3.py` + `ewt_brush_easy_v3.py` | **推荐使用**。基于 V2 增强，新增 FM/板报 `updateMission` 直写 100%、clog 播放日志补发、过课检测参数优化、登录签名头降风控、**课时级进度条面板**、判定阈值 0.8 优化、进度延迟复核防重刷。 |
+| **V2 稳定版** | `ewt_brush_v2.py` + `ewt_brush_easy.py` | 原版保留，稳定可靠，只刷视频课时。 |
 
 ---
 
-## ✨ 功能特性
+## ✨ 功能特性（V3）
 
 | 功能 | 说明 |
 |---|---|
@@ -64,6 +57,8 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 | 🧩 多实例并行 | 自动分片（offset/limit）+ 错峰（phase-offset），速度成倍提升 |
 | 📊 实时进度 | 命令行进度条 / 日志文件，实时可见 |
 | ✅ 自动验证 | 刷完自动重扫确认，失败课时自动补刷（最多 3 轮） |
+| 🆕 FM/板报直写 | V3 新增：FM 收听 / 板报课时 `updateMission` 一次直写 100% |
+| 📡 clog 补发 | V3 新增：完成判定后补发播放日志，提高完成率 |
 | 🆕 原始版本保留 | 收录原作者 spark.py 未修改版本（详见下方） |
 
 ---
@@ -72,10 +67,10 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 
 ```
 ewt360-brush/
-├── ewt_brush_v2.py          # 刷课引擎（核心，自包含，单文件）—— 增强版
-├── ewt_brush_v2_test.py     # 🧪 测试版（登录签名头 + FM/板报直写 + clog补发，不覆盖原版）
-├── ewt_brush_easy_test.py   # 🧪 测试版傻瓜式入口（账号→扫描→配置→多实例→监控，全自动）
-├── ewt_brush_easy.py        # 傻瓜式交互入口（提问式引导）
+├── ewt_brush_v3.py          # ⭐ V3 引擎（推荐，功能最全）
+├── ewt_brush_easy_v3.py     # ⭐ V3 傻瓜式入口（提问式引导）
+├── ewt_brush_v2.py          # V2 引擎（稳定版）
+├── ewt_brush_easy.py        # V2 傻瓜式入口
 ├── requirements.txt         # 依赖（仅 2 个）
 ├── LICENSE                  # MIT License
 ├── original/                # 原作者原始脚本（存档与溯源）
@@ -85,27 +80,24 @@ ewt360-brush/
     └── EWT刷课使用教程（傻瓜版）.md  # 详细图文教程
 ```
 
-> 设计理念：easy 只是遥控器（引导/调度/监控），刷课逻辑全在 v2 引擎里，代码不重复、易维护。
+> 设计理念：easy 只是遥控器（引导/调度/监控），刷课逻辑全在引擎里，代码不重复、易维护。
 
 ---
 
-## 📦 版本说明（增强版 vs 原始版）
+## 📦 版本对比（V3 vs V2）
 
-本仓库包含两个版本：
-
-| 能力 | 原始版 spark.py（original/） | 增强版 ewt_brush_v2.py |
+| 能力 | V2 稳定版 | V3 正式版 ⭐ |
 |---|---|---|
-| 登录方式 | 仅接受已有 token | 账号密码自动登录（AES+oauth）|
-| 扫描 | 手动发现作业/课时 | 自动扫描全部未完成课时 |
-| 并行 | 单课竞态爆发（~5x）| 外层 N 路并行 + 内层竞态爆发 |
-| 多实例 | 不支持 | 支持分片（offset/limit/phase-offset）|
-| token 续期 | 无 | 自动续期（最多 3 次）|
-| WAF 风控 | 基础限速 | 自动冷却 120s 重试（最多 2 次）|
-| 看课检测 | 无 | 三重兜底机制（弹题/置过/重刷）|
-| 自动验证 | 无 | 刷完自动重扫 + 失败补刷 |
-| 使用复杂度 | 需手动提供 token | 傻瓜式全自动 |
-
-推荐使用增强版（ewt_brush_v2.py），原始版仅作学习参考与协议研究。
+| 视频刷课 | ✅ 竞态爆发加速 | ✅ 同 V2 + 优化 |
+| FM/板报直写 | ❌ 不处理 | ✅ `updateMission` 一次直写 100% |
+| clog 播放日志补发 | ❌ 无 | ✅ 补发提高完成判定率 |
+| 登录签名头 | ❌ 无 | ✅ 补齐 Web 端签名，降风控 |
+| 过课检测参数 | 原始 | ✅ 校本 +2000000、type 按 contentType 计算 |
+| 判定阈值 | 1.0（过严） | ✅ 0.8（平台真实阈值） |
+| 进度延迟复核 | 立即重刷 | ✅ 等待+复核后再判定 |
+| 进度条面板 | 单行计数 | ✅ 课时级进度条面板 |
+| 配置限制 | 有上限 | ✅ 无上限，自行决定 |
+| 使用复杂度 | 需手动分片 | easy 自动多实例 + 监控 |
 
 ---
 
@@ -122,48 +114,58 @@ pip install httpx pycryptodome
 
 > httpx：网络请求；pycryptodome：AES 加密登录（提供 Crypto 模块）。缺一不可。
 
+| 功能 | 说明 |
+|---|---|
+| 🔐 自动登录 | 账号密码 AES 加密 → oauth 登录，无需手动抓 token |
+| 🔍 自动扫描 | 识别全部未完成课时（含时长），只刷必学科目 |
+| ⚡ 竞态爆发加速 | 单课时内 N 路并发上报，等效 ~5x 加速（--burst 可调） |
+| 🚦 WAF 风控兜底 | 拦截自动冷却 120s 重试（最多 2 次） |
+| 🔄 token 自动续期 | 被挤下线自动重新登录（最多 3 次），任务不中断 |
+| 🎯 看课检测三重机制 | 弹题绕过 / 检测置过 / 未通过自动重刷（最多 3 次） |
+| 🧩 多实例并行 | 自动分片（offset/limit）+ 错峰（phase-offset），速度成倍提升 |
+| 📊 实时进度 | 命令行进度条 / 日志文件，实时可见 |
+| ✅ 自动验证 | 刷完自动重扫确认，失败课时自动补刷（最多 3 轮） |
+| 🆕 原始版本保留 | 收录原作者 spark.py 未修改版本（详见下方） |
+
 ---
 
 ## 🚀 快速开始
 
-### 方式一：傻瓜式交互（推荐）
+### 方式一：傻瓜式交互（推荐，V3）
 
 ```bash
-python3 ewt_brush_easy.py
+python3 ewt_brush_easy_v3.py
 ```
 
 按提示依次输入：**账号 → 密码 → 自动扫描 → 实例数/concurrency/burst/qps → Y 确认**
 之后全自动：启动 → 监控 → 验证 → 补刷 → 全部刷完。
+> 💡 V3 傻瓜入口会自动多实例分片 + 显示**课时级进度条面板**，且配置无上限。
 
-### 方式二：命令行直接跑（增强版）
+### 方式二：命令行直接跑（V3 引擎）
 
 ```bash
 # 预检扫描（先看有哪些课时）
-python3 ewt_brush_v2.py --dry-run --account 你的账号 --password 你的密码
+python3 ewt_brush_v3.py --dry-run --account 你的账号 --password 你的密码
 
-# 单实例极速刷
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
-    --concurrency 12 --burst 24 --qps 100000
+# 🏆 新手推荐：单实例高路数极速刷（实测 3 分 21 秒刷完 400 分钟视频）
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
+    --concurrency 18 --burst 48 --qps 100000
 
-# 4 实例并行（自动分片 + 错峰）
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+# 若想多实例并行（进阶，需手动分片）
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 0   --limit 25
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 25  --limit 25 --phase-offset 5000
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
-    --concurrency 12 --burst 24 --qps 100000 --offset 50  --limit 25 --phase-offset 10000
-python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
-    --concurrency 12 --burst 24 --qps 100000 --offset 75  --limit 0  --phase-offset 15000
 ```
 
-### 方式三：原始版 spark.py（仅接受 token）
+### 方式三：V2 稳定版 / 原始版 spark.py
 
+**V2 稳定版**（若想用原版）：把上面命令里的 `ewt_brush_v3.py` / `ewt_brush_easy_v3.py` 换成 `ewt_brush_v2.py` / `ewt_brush_easy.py` 即可。
+
+**原始版 spark.py**（仅接受 token）：
 ```bash
 # 提供已有 token 刷全部
 python3 original/spark.py --token YOUR_TOKEN --all
-
-# 只刷指定作业
-python3 original/spark.py --token YOUR_TOKEN --homework-id 10519926
 ```
 
 ---
@@ -176,7 +178,7 @@ pip install httpx pycryptodome
 termux-setup-storage           # 授权存储
 cd /storage/emulated/0/你的脚本目录
 termux-wake-lock               # 防息屏断网
-python3 ewt_brush_easy.py
+python3 ewt_brush_easy_v3.py   # V3 傻瓜入口（推荐）
 ```
 
 ---
@@ -198,7 +200,7 @@ python3 ewt_brush_easy.py
 
 > **🏆 新手推荐参数（直接抄）**：
 > ```bash
-> python3 ewt_brush_v2.py --concurrency 18 --burst 48 --qps 100000
+> python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 > ```
 > **单实例 18路 + burst48 + 不限速**，实测 1578 分钟视频 3 分 21 秒刷完，稳定、无需开多实例。
 
@@ -237,7 +239,7 @@ python3 ewt_brush_easy.py
 
 **💥 最新实测**：`单实例 18路 | QPS 100000 | burst 48` → **1578 分钟视频（约407小时）仅 3 分 21 秒刷完**，123 课时全部一次通过，无重刷、无卡顿。
 ```bash
-python3 ewt_brush_v2.py --concurrency 18 --burst 48 --qps 100000
+python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 ```
 
 > **🏆 新手推荐配置：**
@@ -323,7 +325,7 @@ python3 ewt_brush_v2.py --concurrency 18 --burst 48 --qps 100000
 
 **🎁 赞赏后你可以：**
 - 在 Issues 里留下你的微信昵称，我会拉你进**互助交流群**
-- 优先获得新功能和测试版体验资格
+- 优先获得新功能和版本体验资格
 - 遇到问题时获得**优先响应**
 
 **🏆 累计赞赏排行（如有）：** TBD

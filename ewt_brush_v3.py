@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EWT360 自包含全量刷课脚本（单文件一体化）— [测试版 ewt_brush_v2_test]
+EWT360 自包含全量刷课脚本（单文件一体化）— [正式版V3 ewt_brush_v3]
 ============================================================
-[测试版新增功能]（基于 5 个开源仓库交叉研究，2026-08-20）：
+[V3新增功能]（基于 5 个开源仓库交叉研究，2026-08-20）：
   1. 登录补齐 Web 端签名头（secretId=2: sign/timestamp/autoLogin），
      模拟真实浏览器登录，降低"请完成安全验证"风控触发概率
   2. 任务类型扩展：FM收听(contentType=3)/板报(contentType=5)
@@ -14,23 +14,23 @@ EWT360 自包含全量刷课脚本（单文件一体化）— [测试版 ewt_bru
      校本视频(ct=11) lessonId +2000000 偏移；type 按 contentType 计算（视频=1/其他=2）
   5. 完成判定阈值对齐 spark 更新版 [OPTIM]：percent>=0.8（平台真实阈值），
      避免 1.0 过严误判重刷；seriousCheckResult 直查优先、翻页兜底
-  其余逻辑与原版 ewt_brush_v2.py 完全一致。
+  本版本即最新正式版，替代 V2，功能最全。
 整合：自动登录 + 作业扫描 + N路并行刷课 + 竞态爆发 + WAF冷却重试 + token自动续期。
 不依赖 spark.py / ewt_parallel.py，单文件即可运行。
 【极限速度测试结论】
   12 路并发 + qps400 = 最优（约7个/分钟，0网络错误）
   10路/qps300 ≈ 2个/分钟；14路/qps500 ERR增多；16路/qps600 连接失败
 【用法】
-  python3 ewt_brush_v2_test.py                          # 自动登录并刷全部作业
-  python3 ewt_brush_v2_test.py --hw 10500480            # 只刷指定作业
-  python3 ewt_brush_v2_test.py --token xxx --dry-run    # 用已有token仅扫描
-  python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24   # 自定义路数/QPS/爆发
-  python3 ewt_brush_v2_test.py --offset 30 --limit 31   # 分片（多实例并行提速）
+  python3 ewt_brush_v3.py                          # 自动登录并刷全部作业
+  python3 ewt_brush_v3.py --hw 10500480            # 只刷指定作业
+  python3 ewt_brush_v3.py --token xxx --dry-run    # 用已有token仅扫描
+  python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24   # 自定义路数/QPS/爆发
+  python3 ewt_brush_v3.py --offset 30 --limit 31   # 分片（多实例并行提速）
 【多实例并行（分片提速，实测最优：4实例×12路+burst24+不限速）】
-  1. 实例A: python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24 --offset 0 --limit 56
-  2. 实例B: python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24 --offset 56 --limit 56 --phase-offset 5000
-  3. 实例C: python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24 --offset 112 --limit 56 --phase-offset 10000
-  4. 实例D(补刷): python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24 --offset 168
+  1. 实例A: python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24 --offset 0 --limit 56
+  2. 实例B: python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24 --offset 56 --limit 56 --phase-offset 5000
+  3. 实例C: python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24 --offset 112 --limit 56 --phase-offset 10000
+  4. 实例D(补刷): python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24 --offset 168
      每个实例可独立设置 --concurrency / --qps / --burst，互不干扰（Bucket 按 token+lesson 分片）。
 
 【token 自动续期】
@@ -1780,14 +1780,14 @@ async def run_brush_all(
 # ======================================================================
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="ewt_brush_v2_test.py",
-        description="EWT360 自包含全量刷课脚本【测试版】（自动登录 + N路并行 + 竞态爆发 + WAF冷却 + FM/板报直写 + clog补发 + 过课检测优化）",
+        prog="ewt_brush_v3.py",
+        description="EWT360 自包含全量刷课脚本【V3正式版】（自动登录 + N路并行 + 竞态爆发 + WAF冷却 + FM/板报直写 + clog补发 + 过课检测优化）",
         epilog=(
             "示例:\n"
-            "  python3 ewt_brush_v2_test.py                          # 自动登录刷全部\n"
-            "  python3 ewt_brush_v2_test.py --hw 10500480            # 只刷指定作业\n"
-            "  python3 ewt_brush_v2_test.py --token xxx --dry-run    # 仅扫描\n"
-            "  python3 ewt_brush_v2_test.py --concurrency 12 --qps 100000 --burst 24\n"
+            "  python3 ewt_brush_v3.py                          # 自动登录刷全部\n"
+            "  python3 ewt_brush_v3.py --hw 10500480            # 只刷指定作业\n"
+            "  python3 ewt_brush_v3.py --token xxx --dry-run    # 仅扫描\n"
+            "  python3 ewt_brush_v3.py --concurrency 12 --qps 100000 --burst 24\n"
             "  # 多实例分片（推荐 4实例×12路+burst24+不限速，各实例独立调路数/QPS）:\n"
             "  #   实例A: --offset 0 --limit 56 --phase-offset 0\n"
             "  #   实例B: --offset 56 --limit 56 --phase-offset 5000\n"

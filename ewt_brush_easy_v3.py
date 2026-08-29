@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EWT360 傻瓜式刷课引导器 - 【测试版】（ewt_brush_easy_test.py）
+EWT360 傻瓜式刷课引导器 - 【测试版】（ewt_brush_easy_v3.py）
 =============================================
 一进去只需要回答几个问题，其余全部自动完成：
 
@@ -10,8 +10,8 @@ EWT360 傻瓜式刷课引导器 - 【测试版】（ewt_brush_easy_test.py）
    ③ 刷课配置（实例数 / concurrency / burst / qps）
    ④ 自动登录 → 自动分片 → 多实例后台启动 → 实时监控 → 完成验证
 
-依赖：ewt_brush_v2_test.py 放在同目录。
-用法：python3 ewt_brush_easy_test.py
+依赖：ewt_brush_v3.py 放在同目录。
+用法：python3 ewt_brush_easy_v3.py
 """
 import json
 import os
@@ -24,9 +24,9 @@ import time
 # [路径]
 # ======================================================================
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-BRUSH_SCRIPT = os.path.join(SCRIPT_DIR, "ewt_brush_v2_test.py")
+BRUSH_SCRIPT = os.path.join(SCRIPT_DIR, "ewt_brush_v3.py")
 if not os.path.exists(BRUSH_SCRIPT):
-    BRUSH_SCRIPT = os.path.join(SCRIPT_DIR, "ewt_brush_v2_test.py")
+    BRUSH_SCRIPT = os.path.join(SCRIPT_DIR, "ewt_brush_v3.py")
 CONFIG_FILE = os.path.join(SCRIPT_DIR, ".ewt_easy_config.json")
 LOG_DIR = os.path.join(SCRIPT_DIR, "logs")
 TOKEN_FILE = "/tmp/ewt_easy_token.txt"   # 多实例共用同一 token，避免互踢
@@ -377,7 +377,7 @@ def monitor(procs: list, total: int, lessons=None, refresh_interval: float = 3.0
 # ======================================================================
 def main():
     cprint("=" * 60)
-    cprint("  🚀 EWT360 傻瓜式刷课工具（测试版）v1.0")
+    cprint("  🚀 EWT360 傻瓜式刷课工具 v3.0")
     cprint("  只需要回答几个问题，其余全部自动完成")
     cprint("=" * 60)
     if not os.path.exists(BRUSH_SCRIPT):
