@@ -50,13 +50,13 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 |---|---|---|
 | `ewt_brush_easy.py` | ~14 KB | **遥控器**（正式版傻瓜引导器） |
 | `ewt_brush_v2.py` | ~72 KB | **电视机**（正式版刷课引擎，视频/校本课时） |
-| `ewt_brush_easy_test.py` | ~16 KB | 🧪 **遥控器（测试版）**：引导测试版引擎，带课时级进度条面板 |
-| `ewt_brush_v2_test.py` | ~85 KB | 🧪 **电视（测试版引擎）**：额外支持 FM/板报直写、clog 补发、过课检测优化 |
+| `ewt_brush_easy_v3.py` | ~25 KB | ⭐ **V3 傻瓜入口**（推荐）：引导 V3 引擎，带课时级进度条面板 |
+| `ewt_brush_v3.py` | ~84 KB | ⭐ **V3 引擎**（推荐）：支持 FM/板报直写、clog 补发、过课检测优化 |
 | `EWT刷课使用教程（傻瓜版）.md` | — | 本教程 |
 
 > 🧪 **测试版 vs 正式版选哪个？**
 > - **正式版**（v2 + easy）：稳定，只刷视频课时。
-> - **测试版**（v2_test + easy_test）：基于开源仓库交叉研究增强，支持 FM/板报 `updateMission` 直写 100%、clog 播放日志补发、过课检测参数优化（校本视频 +2000000）、登录签名头降风控、**课时级进度条面板**、完整列任务。测试版不覆盖原版，可放心试用，出问题随时回退正式版。
+> - **V3 正式版**（ewt_brush_v3.py + ewt_brush_easy_v3.py）：推荐。基于 V2 增强，支持 FM/板报直写、clog 补发、过课检测优化、登录签名头降风控、课时级进度条面板、配置无上限。
 
 > **什么是 FM 课时？** EWT 作业里除了视频课时，还有一小类"心灵成长/生涯规划"音频（平台叫 FM，2~6 分钟一条）。**测试版引擎**已通过 `updateMission` 接口直接直写这些课时为完成（见 12.3）；**正式版引擎**只处理视频（contentType 1/11），不处理 FM。
 
@@ -92,13 +92,13 @@ EWT360（升学 e网通）是一个网课平台，老师会布置**作业**，�
 
 ### 通用流程（两端一样）
 ```
-运行 ewt_brush_easy.py（正式版） 或  ewt_brush_easy_test.py（测试版，推荐）→ 输入账号密码 → 自动扫描课时 → 输配置 → 回车开刷
+运行 ewt_brush_easy_v3.py（V3 推荐，功能最全）→ 输入账号密码 → 自动扫描课时 → 输配置 → 回车开刷
 【第 1 步】账号 / 密码        ← 输入你的账号密码（下次自动记住）
 【第 2 步】识别任务           ← 自动扫描，**完整列出所有未完成课时**（不省略，全部显示）
 【第 3 步】刷课配置           ← 实例数 / concurrency / burst / qps（直接回车用推荐值）
 确认开始？                    ← 输入 Y 回车
 ```
-> 🧪 **测试版（ewt_brush_easy_test.py）** 会**列出全部任务**（每个带 `[序号/总数]`），并在刷课监控阶段显示**课时级进度条面板**（见 3.3）。
+> 💡 **V3 傻瓜入口**会列出全部任务，并在刷课监控阶段显示课时级进度条面板（见 3.3）。
 之后全自动：启动 → 实时显示进度 → 全部完成 → 自动验证 → 显示"🎉 全部刷完"。
 
 ---
@@ -209,7 +209,7 @@ termux-setup-storage
 
 **⑤ 把脚本放到手机 + 进入目录**
 
-把 `ewt_brush_easy_test.py` + `ewt_brush_v2_test.py`（测试版）或 `ewt_brush_easy.py` + `ewt_brush_v2.py`（正式版）**两个文件拷到手机**（如 `Download/ewt360` 文件夹）。
+把 `ewt_brush_easy_v3.py` + `ewt_brush_v3.py`（V3 推荐）或 `v2/ewt_brush_easy.py` + `v2/ewt_brush_v2.py`（V2 稳定版）**拷到手机**（如 `Download/ewt360` 文件夹）。
 
 然后在 Termux 里 `cd` 到脚本目录：
 ```bash
@@ -223,9 +223,9 @@ ls                                       # 确认能看到两个 .py 文件
 **⑥ 运行刷课（傻瓜入口）**
 
 ```bash
-python ewt_brush_easy_test.py       # 测试版（推荐，带进度条面板 + FM/板报直写）
+python ewt_brush_easy_v3.py       # V3 推荐（带进度条面板 + FM/板报直写）
 # 或正式版：
-python ewt_brush_easy.py
+python ewt_brush_easy_v3.py
 ```
 按提示答题：**账号 → 密码 → 自动扫描（会完整列出全部课时）→ 实例/concurrency/burst/qps（回车用推荐值）→ Y 确认**，之后全自动。
 
@@ -252,7 +252,7 @@ termux-wake-lock        # 保持 CPU 唤醒（息屏也能继续运行）
 如果课时很多想挂着通宵刷，可用 `nohup` 让脚本在后台跑，即使退出了 Termux 窗口也不停：
 ```bash
 cd /storage/emulated/0/Download/ewt360
-nohup python ewt_brush_easy_test.py > run.log 2>&1 &
+nohup python ewt_brush_easy_v3.py > run.log 2>&1 &
 ```
 之后随时查看进度：
 ```bash
@@ -267,7 +267,7 @@ tail -f run.log          # 实时看刷课日志
 ```bash
 termux-wake-lock                              # 1. 保持唤醒
 cd /storage/emulated/0/Download/ewt360        # 2. 进目录
-python ewt_brush_easy_test.py                  # 3. 开刷（已完成的自动跳过）
+python ewt_brush_easy_v3.py                  # 3. 开刷（已完成的自动跳过）
 ```
 
 ---
@@ -296,9 +296,9 @@ python ewt_brush_easy_test.py                  # 3. 开刷（已完成的自动�
 
 刷课过程中随时可以查看进度，三种方式任选：
 
-#### 方式一：傻瓜入口自动显示（ewt_brush_easy_test.py / ewt_brush_easy.py）
+#### 方式一：傻瓜入口自动显示（ewt_brush_easy_v3.py V3）
 
-**测试版入口（ewt_brush_easy_test.py）** 刷课期间**实时清屏重绘一个"实时刷课面板"**（默认 **每 3 秒自动刷新**），带**每个课时的独立进度条** + **总进度条**，长这样：
+**V3 入口（ewt_brush_easy_v3.py）** 刷课期间**实时清屏重绘一个"实时刷课面板"**（默认每 3 秒自动刷新），带**每个课时的独立进度条** + **总进度条**，长这样：
 
 ```
   ═══════ 实时刷课面板 ═══════
@@ -429,7 +429,7 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 
 **测试版引擎**扫描时自动识别 contentType=3/5 的 FM/板报课时，调用 EWT 的 `updateMission {schoolId, contentId, contentType, percent:1}` 接口**一次直写完成度 100%**（不走播放心跳、秒完成），刷课日志显示 `[直写] ... updateMission(ct=3) → ✅ 100%`。
 
-- **测试版**（`ewt_brush_v2_test.py` / `ewt_brush_easy_test.py`）：✅ 自动直写 FM/板报
+- **V3 正式版**（`ewt_brush_v3.py` / `ewt_brush_easy_v3.py`）：✅ 自动直写 FM/板报
 - **正式版**（`ewt_brush_v2.py` / `ewt_brush_easy.py`）：不处理 FM（只扫 contentType 1/11），FM 请用测试版引擎
 
 ---
@@ -569,8 +569,9 @@ grep -c "\[完成\]" /tmp/ewt_easy_logs/inst_*.log
 | `连接被拒绝` | 并发过高 | 降到 12路 或更低 |
 | `没有未完成的课时` | **全部刷完 ✅** | 无需操作，等新作业发布 |
 | 想重刷已完成的课时 | 扫描默认跳过已完成 | 用 `--force-all`，详见第 12 章 |
-| 作业显示还有 FM 课时没完成（心灵成长/生涯规划） | 正式版只刷视频 | 用**测试版引擎**（`ewt_brush_v2_test.py` 或 `ewt_brush_easy_test.py`）自动直写 FM/板报 |
+| 作业显示还有 FM 课时没完成（心灵成长/生涯规划） | 正式版只刷视频 | 用**V3 引擎**（`ewt_brush_v3.py` 或 `ewt_brush_easy_v3.py`）自动直写 FM/板报 |
 | 刷完显示"未通过" | 看课检测问题 | **无需操作**：机制C 自动重刷最多3次；仍不行本工具自动补刷 |
+| Windows UnicodeEncodeError（中文乱码）| 控制台编码问题 | 脚本已内置 UTF-8 加固，直接运行即可；若仍报错，PowerShell 执行 `$env:PYTHONUTF8="1" ; py ewt_brush_v3.py`，CMD 执行 `set PYTHONUTF8=1 && py ewt_brush_v3.py` |
 | 单个课时失败（连接/WAF超限） | 偶发网络/风控 | **无需操作**：本工具自动补刷（最多3轮），已完成的自动跳过 |
 
 ---
@@ -615,14 +616,14 @@ python3 ewt_brush_v2.py --account X --password Y --force-all \
 
 ### 12.3 FM 课时（心灵成长/生涯规划音频）
 
-**测试版引擎 `ewt_brush_v2_test.py` 已内置 FM/板报直写** —— 通过 `updateMission` 接口一次直写 100%，无需额外 FM 脚本：
+**V3 引擎 `ewt_brush_v3.py` 已内置 FM/板报直写** —— 通过 `updateMission` 接口一次直写 100%，无需额外 FM 脚本：
 
 ```bash
 # 只刷未完成的 FM（自动跳过已完成）
-python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码
 
 # 强制重刷全部 FM（含已完成）
-python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码 --force-all
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 --force-all
 ```
 
 **工作原理**：测试版引擎扫描时会自动识别 FM(contentType=3)/板报(contentType=5) 课时，调用 EWT 的 `updateMission {schoolId, contentId, contentType, percent:1}` 接口**一次直写完成度 100%**，不走播放心跳、秒完成。
@@ -660,12 +661,12 @@ python3 ewt_brush_v2.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000 --offset 75 --limit 0 --phase-offset 15000
 
 # FM 课时（心灵成长/生涯规划音频）——用测试版引擎自动直写（含 FM/板报）
-python3 ewt_brush_v2_test.py --account 你的账号 --password 你的密码 \
+python3 ewt_brush_v3.py --account 你的账号 --password 你的密码 \
     --concurrency 12 --burst 24 --qps 100000
 # 或傻瓜入口：
-python3 ewt_brush_easy_test.py
+python3 ewt_brush_easy_v3.py
 
 # 查看全部参数
 python3 ewt_brush_v2.py --help
-# 测试版参数同样：python3 ewt_brush_v2_test.py --help
+# 查看 V3 参数：python3 ewt_brush_v3.py --help
 ```
