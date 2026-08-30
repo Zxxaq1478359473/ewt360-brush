@@ -320,6 +320,18 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 
 ---
 
+## 💬 联系方式
+
+如果有问题或建议，欢迎通过以下方式联系：
+
+| 方式 | 联系方式 |
+|---|---|
+| 📮 GitHub Issues | [提交反馈](https://github.com/Zxxaq1478359473/ewt360-brush/issues) |
+| 📧 Gmail | zoan0404@gmail.com |
+| 💬 QQ | 1478359473 |
+
+---
+
 ## ⭐ 支持
 
 如果本项目对你有帮助，欢迎 Star ⭐ 或提交 Issue / PR。
