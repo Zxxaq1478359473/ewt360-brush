@@ -325,6 +325,10 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 如果本项目对你有帮助，欢迎 Star ⭐ 或提交 Issue / PR。
 也欢迎分享你的实测数据（课时数/耗时/配置），帮助优化推荐参数！
 
+[![Star History Chart](https://api.star-history.com/svg?repos=Zxxaq1478359473/ewt360-brush&type=Date)](https://star-history.com/#Zxxaq1478359473/ewt360-brush&Date)
+
+> ⭐ Star 趋势图自动更新，反映项目受欢迎程度。
+
 ---
 
 ## 💰 赞赏
