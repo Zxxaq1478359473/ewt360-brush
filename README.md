@@ -332,15 +332,6 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 
 ---
 
-## ⭐ 支持
-
-如果本项目对你有帮助，欢迎 Star ⭐ 或提交 Issue / PR。
-也欢迎分享你的实测数据（课时数/耗时/配置），帮助优化推荐参数！
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Zxxaq1478359473/ewt360-brush&type=Date)](https://star-history.com/#Zxxaq1478359473/ewt360-brush&Date)
-
-
----
 
 ## 💰 赞赏
 
@@ -372,3 +363,12 @@ python3 ewt_brush_v3.py --concurrency 18 --burst 48 --qps 100000
 <a href="https://github.com/Zxxaq1478359473/ewt360-brush/issues">
   <img src="https://img.shields.io/github/issues/Zxxaq1478359473/ewt360-brush?style=social&label=Issue%20%E5%8F%8D%E9%A6%88" alt="Issue 反馈">
 </a>
+
+
+## ⭐ 支持
+
+如果本项目对你有帮助，欢迎 Star ⭐ 或提交 Issue / PR。
+也欢迎分享你的实测数据（课时数/耗时/配置），帮助优化推荐参数！
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Zxxaq1478359473/ewt360-brush&type=Date)](https://star-history.com/#Zxxaq1478359473/ewt360-brush&Date)
+
