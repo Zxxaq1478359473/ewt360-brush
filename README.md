@@ -40,6 +40,7 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 | 版本 | 文件 | 说明 |
 |---|---|---|
 | **V3 正式版** ⭐ | `ewt_brush_v3.py` + `ewt_brush_easy_v3.py` | **推荐使用**。基于 V2 增强，新增 FM/板报 `updateMission` 直写 100%、clog 播放日志补发、过课检测参数优化、登录签名头降风控、**课时级进度条面板**、判定阈值 0.8 优化、进度延迟复核防重刷。 |
+| **v3-test 测试版** 🧪 | `ewt_brush_v3_test.py` + `ewt_brush_easy_v3_test.py` | 最新实验性优化：作业列表快路径（`status=0` 一次拉取全部作业含已截止，扫描请求 3+ 次 → 1 次）；其余能力与 V3 正式版一致。供尝鲜测试，稳定后并入正式版。 |
 | **V2 稳定版** | `ewt_brush_v2.py` + `ewt_brush_easy.py` | 原版保留，稳定可靠，只刷视频课时。 |
 
 ---
@@ -68,6 +69,8 @@ EWT360 是网课平台，老师布置的作业中包含大量视频课时，需�
 ```
 ewt360-brush/
 ├── ewt_brush_v3.py          # ⭐ V3 引擎（推荐，功能最全）
+├── ewt_brush_v3_test.py     # 🧪 v3-test 测试版引擎（作业列表快路径 status=0）
+├── ewt_brush_easy_v3_test.py # 🧪 v3-test 傻瓜入口
 ├── ewt_brush_easy_v3.py     # ⭐ V3 傻瓜式入口（提问式引导）
 ├── v2/                      # V2 稳定版（单独文件夹）
 │   ├── ewt_brush_v2.py      #   V2 引擎
